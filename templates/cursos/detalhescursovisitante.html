@@ -1,62 +1,50 @@
 {% extends 'base.html' %}
 
-{% block title %}Detalhes do Curso - Visitante{% endblock %}
+{% block title %}Detalhes do Indicador - Visitante{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="text-center">{{ curso.nome }}</h2>
-    <p><strong>Inscrição:</strong> {{ curso.inscricao }}</p>
-    <p><strong>Detalhes:</strong> {{ curso.detalhes }}</p>
-    <p><strong>Informações Complementares:</strong> {{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
+    <!-- Botão Voltar ao Curso -->
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'visualizar_curso' curso.id %}" class="btn btn-secondary">Voltar ao Curso</a>
+    </div>
 
-    <!-- Baixar Capa do Curso -->
-    <div class="mt-4">
-        <h4>Capa do Curso</h4>
-        {% if curso.capa %}
-        <a href="{% url 'baixar_capa' curso.id %}" class="btn btn-info">Baixar Capa</a>
+    <!-- Nome e status do Indicador -->
+    <h1>{{ indicador.indicador_info.nome }}</h1>
+    {% if indicador.NSA %}
+        <p>-NSA-</p>
+    {% endif %}
+    <p>{{ indicador.indicador_info.mensagem_aviso }}</p>
+
+    <!-- Verificar se há um relatório disponível para download -->
+    <div style="margin-top: 20px;">
+        {% if indicador.conteudo %}
+            <p><strong>Relatório:</strong> {{ indicador.conteudo.name }}</p>
+            <p><strong>Data de Envio:</strong> {{ indicador.data_envio }}</p>
+            <p><strong>Usuário que enviou:</strong> {{ indicador.usuario_relatorio.nome }}</p>
+
+            <!-- Ícone de download apenas -->
+            <a href="{% url 'baixar_relatorio' curso.id indicador.indicador_info.id %}">
+                <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
+            </a>
         {% else %}
-        <p>Não há capa disponível para este curso.</p>
+            <p><strong>Relatório:</strong> Não há relatório anexado.</p>
         {% endif %}
     </div>
 
-    <!-- Indicadores do Curso -->
-    <div class="mt-4">
-        <h4>Indicadores</h4>
-        {% for dimensao, indicadores in curso.get_indicadores_by_dimensao.items %}
-        <div class="dimensao-container">
-            <h5>{{ dimensao }}</h5>
-            <ul class="list-group">
-                {% for indicador in indicadores %}
-                <li class="list-group-item">
-                    <p><strong>{{ indicador.indicador_info.nome }}</strong></p>
-                    <p>
-                        {% if indicador.NSA %}
-                        Status: Não se Aplica (NSA)
-                        {% else %}
-                        Nível de Conceito: {{ indicador.nivel_suposto|default:"Nível não definido" }}
-                        {% endif %}
-                    </p>
-                    <!-- Verifica se o relatório está disponível para download -->
-                    {% if indicador.conteudo %}
-                    <a href="{% url 'baixar_relatorio' curso.id indicador.id %}" class="btn btn-info">Baixar Relatório</a>
-                    {% else %}
-                    <p>Relatório: Não há relatório disponível.</p>
-                    {% endif %}
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
+    <!-- Tabela de Conceitos -->
+    <h3>Tabela de Conceitos</h3>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+        <tr>
+            <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2;">Conceito</th>
+            <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2;">Critério de Análise</th>
+        </tr>
+        {% for conceito, criterio in tabela_conceitos.items %}
+            <tr>
+                <td style="border: 1px solid #000; padding: 8px; text-align: center;">{{ conceito }}</td>
+                <td style="border: 1px solid #000; padding: 8px;">{{ criterio }}</td>
+            </tr>
         {% endfor %}
-    </div>
-
-    <!-- Gerar Relatório Geral -->
-    <div class="mt-4">
-        <a href="{% url 'gerar_relatorio_geral' curso.id %}" class="btn btn-secondary">Gerar Relatório Geral</a>
-    </div>
-
-    <!-- Botão de Voltar -->
-    <div class="text-center mt-4">
-        <a href="{% url 'homevisitante' %}" class="btn btn-primary">Voltar para Home</a>
-    </div>
+    </table>
 </div>
 {% endblock %}
