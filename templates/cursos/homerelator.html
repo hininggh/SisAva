@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Home Relator{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Bem-vindo, {{ user.nome }}</h2>
+
+    <div class="text-center mt-4">
+        <a href="{% url 'criar_curso' %}" class="btn btn-primary">Nova Avaliação de Curso</a>
+    </div>
+
+    {% if cursos_criados.exists %}
+    <div class="mt-4">
+        <h3>Cursos Criados por Você</h3>
+        <ul class="list-group">
+            {% for curso in cursos_criados %}
+            <li class="list-group-item">
+                <a href="{% url 'visualizar_curso' curso.id %}">{{ curso.nome }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <p class="text-center">Você ainda não criou nenhum curso.</p>
+    {% endif %}
+
+    {% if cursos_participante.exists %}
+    <div class="mt-4">
+        <h3>Cursos em que você participa</h3>
+        <ul class="list-group">
+            {% for curso in cursos_participante %}
+            <li class="list-group-item">
+                <a href="{% url 'detalhescursorelator' curso.id %}">{{ curso.nome }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <p class="text-center">Você não está associado a nenhum curso.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-secondary">Gerenciar Visitantes</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalhes do Indicador - Visitante{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Detalhes do Indicador</h2>
+
+    <!-- Nome do Indicador -->
+    <div class="mt-4">
+        <h4>Indicador: {{ indicador.indicador_info.nome }}</h4>
+    </div>
+
+    <!-- Verificar se o Indicador é NSA (Não se Aplica) -->
+    <div class="mt-4">
+        {% if indicador.NSA %}
+        <p><strong>Status:</strong> Não se Aplica (NSA)</p>
+        {% else %}
+        <p><strong>Status:</strong> Aplicável</p>
+        <p><strong>Nível de Conceito:</strong> {{ indicador.nivel_suposto|default:"Nível não definido" }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Verificar se há um relatório disponível para download -->
+    <div class="mt-4">
+        {% if indicador.conteudo %}
+        <p><strong>Relatório:</strong> Relatório disponível</p>
+        <a href="{% url 'baixar_relatorio' curso.id indicador.id %}" class="btn btn-info">Baixar Relatório</a>
+        {% else %}
+        <p><strong>Relatório:</strong> Não há relatório anexado.</p>
+        {% endif %}
+    </div>
+
+    <!-- Mensagem de Aviso (se houver) -->
+    {% if indicador.indicador_info.mensagem_aviso %}
+    <div class="alert alert-warning mt-4">
+        <strong>Aviso:</strong> {{ indicador.indicador_info.mensagem_aviso }}
+    </div>
+    {% endif %}
+
+    <!-- Botão de Voltar para a Página de Detalhes do Curso -->
+    <div class="text-center mt-4">
+        <a href="{% url 'detalhescursovisitante' curso.id %}" class="btn btn-secondary">Voltar para Detalhes do Curso</a>
+    </div>
+</div>
+{% endblock %}

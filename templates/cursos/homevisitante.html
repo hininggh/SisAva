@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Home Visitante{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Bem-vindo, {{ user.nome }}</h2>
+
+    {% if cursos_acesso.exists %}
+    <div class="mt-4">
+        <h3>Cursos com Acesso</h3>
+        <ul class="list-group">
+            {% for curso in cursos_acesso %}
+            <li class="list-group-item">
+                <a href="{% url 'detalhescursovisitante' curso.id %}">{{ curso.nome }}</a>
+                <span class="badge badge-info">Acesso até: {{ curso.data_final|date:"d/m/Y" }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <p class="text-center">Você não tem acesso a nenhum curso no momento.</p>
+    {% endif %}
+</div>
+{% endblock %}

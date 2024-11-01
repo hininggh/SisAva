@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Criar ou Editar Curso{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>{% if curso %}Editar Curso{% else %}Criar Novo Curso{% endif %}</h2>
+
+    <!-- Formulário para Nome, Inscrição e Detalhes -->
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success mt-2">{% if curso %}Salvar Alterações{% else %}Salvar Curso{% endif %}</button>
+    </form>
+
+    {% if curso %}
+    <hr>
+    <h3>Relatores do Curso</h3>
+    <!-- Lista de relatores atualizada dinamicamente -->
+    <ul id="relatores-list">
+        {% for relator in relatores %}
+            <li>
+                {{ relator.nome }}
+                <button onclick="excluirRelator({{ relator.id }})" class="btn btn-danger btn-sm">Excluir</button>
+            </li>
+        {% empty %}
+            <p>Nenhum relator adicionado.</p>
+        {% endfor %}
+    </ul>
+
+    <!-- Formulário para adicionar relatores -->
+    <form id="form-adicionar-relator" onsubmit="adicionarRelator(event)">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="relator_id">Adicionar Relator</label> <!-- Atualizado para relator_id -->
+            <select id="relator_id" name="relator_id" class="form-control">
+                {% for usuario in usuarios_disponiveis %}
+                    <option value="{{ usuario.id }}">{{ usuario.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Adicionar Relator</button>
+    </form>
+
+    <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Finalizar e Visualizar Curso</button>
+    {% endif %}
+</div>
+
+
+
+<script>
+    {% if curso and curso.id %}
+        // Função para excluir um relator
+        function excluirRelator(relatorId) {
+            if (confirm("Tem certeza que deseja excluir este relator?")) {
+                fetch("{% url 'excluir_relator' curso.id 0 %}".replace('/0/', '/' + relatorId + '/'), {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        atualizarRelatores();  // Atualiza a lista após a exclusão
+                    } else {
+                        alert('Erro ao excluir o relator.');
+                    }
+                });
+            }
+        }
+
+
+
+        function adicionarRelator(event) {
+            event.preventDefault(); // Impede o envio padrão do formulário
+
+            const relatorId = document.querySelector('select[name="relator_id"]').value;
+
+            fetch("{% url 'adicionar_relator' curso.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `relator_id=${relatorId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    atualizarRelatores(); // Atualiza a lista após adicionar um relator
+                } else {
+                    alert(data.error || 'Erro ao adicionar o relator.');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao adicionar o relator:', error);
+            });
+        }
+
+        // Função para atualizar a lista de relatores
+        function atualizarRelatores() {
+            fetch("{% url 'atualizar_lista_relatores' curso.id %}", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const listaRelatores = document.getElementById('relatores-list');
+                listaRelatores.innerHTML = '';
+                data.relator.forEach(relator => {
+                    const item = document.createElement('li');
+                    item.innerHTML = `${relator.nome} <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>`;
+                    listaRelatores.appendChild(item);
+                });
+            })
+            .catch(error => console.error("Erro ao atualizar a lista de relatores:", error));
+        }
+
+        // Função para finalizar o curso
+        function finalizarCurso() {
+            window.location.href = "{% url 'visualizar_curso' curso.id %}";
+        }
+    {% endif %}
+</script>
+
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerenciar Visitantes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Gerenciar Visitantes</h2>
+
+    <div class="text-center">
+        <a href="{% url 'cadastrovisitante' %}" class="btn btn-primary">Cadastrar Novo Visitante</a>
+    </div>
+
+    {% if visitantes.exists %}
+    <div class="mt-4">
+        <h3>Visitantes Cadastrados</h3>
+        <ul class="list-group">
+            {% for visitante in visitantes %}
+            <li class="list-group-item">
+                {{ visitante.nome }} - {{ visitante.email }}
+                <a href="#" class="btn btn-sm btn-secondary ml-2">Editar</a>
+                <a href="#" class="btn btn-sm btn-danger ml-2">Excluir</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <p class="text-center">Nenhum visitante cadastrado.</p>
+    {% endif %}
+</div>
+{% endblock %}

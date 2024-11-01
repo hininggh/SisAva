@@ -1,0 +1,14 @@
+{% if is_relator %}
+    <!-- Relator pode editar seu perfil -->
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Salvar Alterações</button>
+    </form>
+{% else %}
+    <!-- Visitante apenas visualiza o perfil -->
+    <p><strong>Nome:</strong> {{ usuario.nome }}</p>
+    <p><strong>Email:</strong> {{ usuario.email }}</p>
+    <p><strong>Telefone:</strong> {{ usuario.telefone }}</p>
+    <p><strong>Instituição:</strong> {{ usuario.instituicao }}</p>
+{% endif %}

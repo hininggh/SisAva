@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalhes do Curso - Visitante{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">{{ curso.nome }}</h2>
+    <p><strong>Inscrição:</strong> {{ curso.inscricao }}</p>
+    <p><strong>Detalhes:</strong> {{ curso.detalhes }}</p>
+    <p><strong>Informações Complementares:</strong> {{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
+
+    <!-- Baixar Capa do Curso -->
+    <div class="mt-4">
+        <h4>Capa do Curso</h4>
+        {% if curso.capa %}
+        <a href="{% url 'baixar_capa' curso.id %}" class="btn btn-info">Baixar Capa</a>
+        {% else %}
+        <p>Não há capa disponível para este curso.</p>
+        {% endif %}
+    </div>
+
+    <!-- Indicadores do Curso -->
+    <div class="mt-4">
+        <h4>Indicadores</h4>
+        {% for dimensao, indicadores in curso.get_indicadores_by_dimensao.items %}
+        <div class="dimensao-container">
+            <h5>{{ dimensao }}</h5>
+            <ul class="list-group">
+                {% for indicador in indicadores %}
+                <li class="list-group-item">
+                    <p><strong>{{ indicador.indicador_info.nome }}</strong></p>
+                    <p>
+                        {% if indicador.NSA %}
+                        Status: Não se Aplica (NSA)
+                        {% else %}
+                        Nível de Conceito: {{ indicador.nivel_suposto|default:"Nível não definido" }}
+                        {% endif %}
+                    </p>
+                    <!-- Verifica se o relatório está disponível para download -->
+                    {% if indicador.conteudo %}
+                    <a href="{% url 'baixar_relatorio' curso.id indicador.id %}" class="btn btn-info">Baixar Relatório</a>
+                    {% else %}
+                    <p>Relatório: Não há relatório disponível.</p>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Gerar Relatório Geral -->
+    <div class="mt-4">
+        <a href="{% url 'gerar_relatorio_geral' curso.id %}" class="btn btn-secondary">Gerar Relatório Geral</a>
+    </div>
+
+    <!-- Botão de Voltar -->
+    <div class="text-center mt-4">
+        <a href="{% url 'homevisitante' %}" class="btn btn-primary">Voltar para Home</a>
+    </div>
+</div>
+{% endblock %}

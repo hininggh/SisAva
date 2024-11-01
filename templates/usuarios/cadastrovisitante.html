@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro de Visitante{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Cadastrar Visitante</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- Exibe os campos do formulário de forma organizada -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Cadastrar</button>
+        </div>
+    </form>
+
+    <div class="text-center mt-3">
+        <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-secondary">Voltar para Gerenciar Visitantes</a>
+    </div>
+</div>
+{% endblock %}
