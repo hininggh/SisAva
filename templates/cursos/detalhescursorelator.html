@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load mural_tags %}
-
+{% load static %}
 {% block title %}Detalhes do Curso - Relator{% endblock %}
 
 {% block content %}
@@ -17,19 +17,20 @@
   .minimizable-content {
     margin-top: 10px;
   }
-  .minimizable-content ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .indicador-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ccc; /* Cor suave para separar */
   }
-  .minimizable-content li {
-    border-top: 1px solid #ccc;
-    padding: 10px 0;
-  }
-  .minimizable-content li:first-child {
-    border-top: none;
+  .indicador-info:last-child {
+    border-bottom: none; /* Remove a borda no último item */
   }
 </style>
+
 <div class="container mt-4">
     <!-- Curso e Inscrição -->
     <div class="minimizable">
@@ -44,181 +45,67 @@
         </div>
     </div>
 
-    <!-- Mural -->
-    <div class="mural-section">
-            <!-- Caixa de entrada de mensagem do usuário logado, minimizada -->
-        <div class="mural-section">
-            <div class="minimizable">
-                <h2>Mural de Mensagens</h2>
-                <div class="minimizable-content">
-                <button class="btn btn-secondary btn-sm" onclick="toggleMessageBox()">Abrir Caixa de Mensagem</button>
-                <form id="form-postar-mensagem" onsubmit="postarMensagem(event)" style="display: none;">
-                    {% csrf_token %}
-                    <textarea name="mensagem" class="form-control" placeholder="Escreva sua mensagem"></textarea>
-                    <button type="submit" class="btn btn-primary mt-2">Postar</button>
-                </form>
-            <div id="mural-messages" class="mt-3"></div>
-        </div>
-    </div>
-
     <!-- Indicadores do Curso -->
-        <!-- Indicadores por Dimensão -->
     <div class="minimizable">
+        <h2>Indicadores por Dimensão</h2>
         {% for dimensao, indicadores in indicadores_por_dimensao.items %}
-         <div class="minimizable-content">
-            <h2>{{ dimensao }}</h2>
-            <ul>
-                {% for indicador in indicadores %}
-                    <li>
-                        <a href="{% url 'visualizar_indicador' curso.id indicador.id %}">{{ indicador.indicador_info.nome }}</a>
-                        {% if indicador.nsa %} - NSA {% endif %}
-                        {% if indicador.nivel_suposto %} - Conceito {{ indicador.nivel_suposto }} {% endif %}
-                        {% if indicador.usuario_relatorio %} - Enviado por {{ indicador.usuario_relatorio.nome }} em {{ indicador.data_envio }} {% else %} - Sem envio {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-         </div>
+            <div class="minimizable-content">
+                <h3>{{ dimensao }}</h3>
+                <ul>
+                    {% for indicador in indicadores %}
+                        <li class="indicador-info">
+                            <a href="{% url 'visualizar_indicador' curso.id indicador.id %}">{{ indicador.indicador_info.nome }}</a>
+                            <span>
+                                {% if indicador.NSA %}
+                                    - NSA
+                                {% elif indicador.nivel_suposto %}
+                                    - Conceito {{ indicador.nivel_suposto }}
+                                {% endif %}
+                            </span>
+                            <div>
+                                {% if not indicador.NSA %}
+                                    {% if indicador.conteudo %}
+                                        <a href="{% url 'baixar_relatorio' curso.id indicador.indicador_info.id %}">
+                                            <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
+                                        </a>
+                                        <a href="#" onclick="confirmarSubstituirRelatorio()">
+                                            <img class="icon" src="{% static 'icons/substituir.png' %}" alt="Substituir" style="width: 20px;">
+                                        </a>
+                                        <form method="post" action="{% url 'deletar_relatorio' curso.id indicador.indicador_info.id %}" class="inline-form" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" style="border:none; background:none;">
+                                                <img class="icon" src="{% static 'icons/cancelar.png' %}" alt="Deletar" style="width: 20px;">
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <a href="#" onclick="document.getElementById('file-upload').click();">
+                                            <img class="icon" src="{% static 'icons/envio.png' %}" alt="Enviar Relatório" style="width: 20px;">
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
         {% endfor %}
     </div>
 
-    </div>
-
-        <!-- Informações Complementares -->
-        <div class="minimizable">
-            <h2>Informações Complementares</h2>
-            <div class="minimizable-content">
-                <p>{{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
-            </div>
+    <!-- Informações Complementares -->
+    <div class="minimizable">
+        <h2>Informações Complementares</h2>
+        <div class="minimizable-content">
+            <p>{{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
         </div>
     </div>
+</div>
 
-
-<!--const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value; -->
 <script>
-    // Função para exibir a caixa de mensagem do usuário logado
-    function toggleMessageBox() {
-        const form = document.getElementById("form-postar-mensagem");
-        form.style.display = form.style.display === "none" ? "block" : "none";
-    }
-
-    // Função para postar uma nova mensagem
-    function postarMensagem(event) {
-        event.preventDefault();
-
-        const mensagem = document.querySelector('#form-postar-mensagem textarea[name="mensagem"]').value;
-
-        fetch("{% url 'postar_mensagem' curso.id %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: `mensagem=${encodeURIComponent(mensagem)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status && data.status.includes("sucesso")) {
-                atualizarMural();
-                document.querySelector('#form-postar-mensagem textarea[name="mensagem"]').value = ""; // Limpa o campo
-            } else {
-                alert(data.status || "Erro ao postar a mensagem.");
-            }
-        })
-        .catch(error => console.error("Erro ao postar mensagem:", error));
-    }
-
-    // Função para atualizar a lista de mensagens do mural
-    function atualizarMural() {
-        fetch("{% url 'atualizar_mural' curso.id %}", {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const muralContainer = document.querySelector(".mural-messages");
-            muralContainer.innerHTML = '';  // Limpa a lista atual
-
-            data.mensagens.forEach(mensagem => {
-                const mensagemElement = document.createElement("div");
-                mensagemElement.classList.add("mural-message");
-                mensagemElement.innerHTML = `
-                    <strong>${mensagem.autor}</strong>: ${mensagem.mensagem}
-                    ${mensagem.pode_editar ? `
-                        <button onclick="editarMensagem(${mensagem.id})" class="btn btn-link btn-sm">Editar</button>
-                        <button onclick="apagarMensagem(${mensagem.id})" class="btn btn-danger btn-sm">Apagar</button>
-                    ` : ""}
-                `;
-                muralContainer.appendChild(mensagemElement);
-            });
-        })
-        .catch(error => console.error("Erro ao atualizar mural:", error));
-    }
-
-    // Funções para editar e apagar mensagens
-    function editarMensagem(mensagemId) {
-        const novaMensagem = prompt("Edite sua mensagem:");
-        if (novaMensagem) {
-            fetch(`{% url 'editar_mensagem' 0 %}`.replace('/0/', `/${mensagemId}/`), {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: `mensagem=${encodeURIComponent(novaMensagem)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status && data.status.includes("sucesso")) {
-                    atualizarMural();
-                } else {
-                    alert(data.status || "Erro ao editar a mensagem.");
-                }
-            })
-            .catch(error => console.error("Erro ao editar a mensagem:", error));
+    function confirmarSubstituirRelatorio() {
+        if (confirm("O relatório já existente será apagado para salvar o novo. Deseja continuar?")) {
+            document.getElementById("file-upload").click();
         }
     }
-
-    function apagarMensagem(mensagemId) {
-        if (confirm("Tem certeza que deseja apagar esta mensagem?")) {
-            fetch(`{% url 'apagar_mensagem' 0 %}`.replace('/0/', `/${mensagemId}/`), {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status && data.status.includes("sucesso")) {
-                    atualizarMural();
-                } else {
-                    alert(data.status || "Erro ao apagar a mensagem.");
-                }
-            })
-            .catch(error => console.error("Erro ao apagar a mensagem:", error));
-        }
-    }
-
-    // Carrega o mural inicial ao abrir a página
-    document.addEventListener("DOMContentLoaded", function() {
-        atualizarMural();
-    });
-
-    //minimizar
-    document.addEventListener("DOMContentLoaded", function() {
-        const minimizables = document.querySelectorAll('.minimizable h2');
-
-        minimizables.forEach(header => {
-            header.addEventListener('click', function() {
-                const content = this.nextElementSibling; // Encontra o próximo elemento para expandir/colapsar
-                if (content) {
-                    content.style.display = content.style.display === "none" ? "block" : "none";
-                }
-            });
-        });
-    });
-
 </script>
 
 {% endblock %}
