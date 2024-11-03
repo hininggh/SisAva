@@ -18,8 +18,6 @@
     margin-top: 10px;
   }
 
-
-
   .indicador-info {
     display: flex;
     justify-content: space-between;
@@ -27,12 +25,13 @@
     padding: 5px 0;
     padding-bottom: 10px;
     margin-bottom: 2px;
-    border-bottom: 1px solid #ccc; /* Cor suave para separar */
+    border-bottom: 1px solid #ccc;
   }
   .indicador-info:last-child {
-    border-bottom: none; /* Remove a borda no último item */
+    border-bottom: none;
   }
 </style>
+
 
 <div class="container mt-4">
     <!-- Curso e Inscrição -->
@@ -74,44 +73,45 @@
                 <ul>
                     {% for indicador in indicadores %}
                         <li class="indicador-info">
-                            <a href="{% url 'visualizar_indicador' curso.id indicador.id %}" title="{{ indicador.indicador_info.mensagem_aviso }}" >{{ indicador.indicador_info.nome }}</a>
-                            <span>
+                            <!-- Nome do Indicador -->
+                            <a href="{% url 'visualizar_indicador' curso.id indicador.id %}" title="{{ indicador.indicador_info.mensagem_aviso }}" style="flex-grow: 1;">{{ indicador.indicador_info.nome }}</a>
+
+                            <!-- Conceito ou NSA e Ícones, alinhados à direita -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
                                 {% if indicador.NSA %}
-                                    - NSA -
+                                    <span style="font-weight: bold; margin-right: 10px;">- NSA -</span>
                                 {% elif indicador.nivel_suposto %}
-                                    - Conceito {{ indicador.nivel_suposto }} -
+                                    <span style="font-weight: bold; margin-right: 10px;">Conceito {{ indicador.nivel_suposto }}</span>
                                 {% endif %}
-                            </span>
-                            <div>
+
+                                <!-- Ícones de Relatório -->
                                 {% if not indicador.NSA %}
                                     {% if indicador.conteudo %}
-                                        <div style="display: flex; align-items: center; gap: 10px;">
-                                            <a href="{% url 'baixar_relatorio' curso.id indicador.id %}">
-                                                <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
-                                            </a>
-                                            <a href="#" onclick="confirmarSubstituirRelatorio('{{ indicador.indicador_info.nome }}', {{ indicador.id }})">
-                                                <img class="icon" src="{% static 'icons/substituir.png' %}" alt="Substituir" style="width: 20px;">
-                                            </a>
-                                            <form method="post" action="{% url 'deletar_relatorio' curso.id indicador.id %}?origem=curso" class="inline-form" style="margin: 0;" onsubmit="return confirmarDeletarRelatorio('{{ indicador.indicador_info.nome }}');">
-                                                {% csrf_token %}
-                                                <button type="submit" style="border: none; background: none; padding: 0;">
-                                                    <img class="icon" src="{% static 'icons/cancelar.png' %}" alt="Deletar" style="width: 20px;">
-                                                </button>
-                                            </form>
-                                        </div>
+                                        <a href="{% url 'baixar_relatorio' curso.id indicador.id %}">
+                                            <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
+                                        </a>
+                                        <a href="#" onclick="confirmarSubstituirRelatorio('{{ indicador.indicador_info.nome }}', {{ indicador.id }})">
+                                            <img class="icon" src="{% static 'icons/substituir.png' %}" alt="Substituir" style="width: 20px;">
+                                        </a>
+                                        <form method="post" action="{% url 'deletar_relatorio' curso.id indicador.id %}?origem=curso" class="inline-form" style="margin: 0;" onsubmit="return confirmarDeletarRelatorio('{{ indicador.indicador_info.nome }}');">
+                                            {% csrf_token %}
+                                            <button type="submit" style="border: none; background: none; padding: 0;">
+                                                <img class="icon" src="{% static 'icons/cancelar.png' %}" alt="Deletar" style="width: 20px;">
+                                            </button>
+                                        </form>
                                     {% else %}
                                         <a href="#" onclick="document.getElementById('file-upload-{{ indicador.id }}').click();">
                                             <img class="icon" src="{% static 'icons/envio.png' %}" alt="Enviar Relatório" style="width: 20px;">
                                         </a>
                                     {% endif %}
-
-                                    <!-- Formulário de envio de relatório -->
-                                    <form id="enviar-relatorio-form-{{ indicador.id }}" method="post" enctype="multipart/form-data" action="{% url 'enviar_ou_substituir_relatorio' curso.id indicador.id %}?origem=curso">
-                                        {% csrf_token %}
-                                        <input type="file" name="conteudo" id="file-upload-{{ indicador.id }}" style="display: none;" onchange="document.getElementById('enviar-relatorio-form-{{ indicador.id }}').submit();">
-                                    </form>
                                 {% endif %}
                             </div>
+
+                            <!-- Formulário de envio de relatório -->
+                            <form id="enviar-relatorio-form-{{ indicador.id }}" method="post" enctype="multipart/form-data" action="{% url 'enviar_ou_substituir_relatorio' curso.id indicador.id %}?origem=curso">
+                                {% csrf_token %}
+                                <input type="file" name="conteudo" id="file-upload-{{ indicador.id }}" style="display: none;" onchange="document.getElementById('enviar-relatorio-form-{{ indicador.id }}').submit();">
+                            </form>
                         </li>
                     {% endfor %}
                 </ul>
