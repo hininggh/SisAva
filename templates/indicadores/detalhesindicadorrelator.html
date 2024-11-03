@@ -14,8 +14,9 @@
 <p>{{ indicador_man.indicador_info.mensagem_aviso }}</p>
 
 <!-- Botão para Aplicar ou Remover NSA -->
+<!-- Formulário para Aplicar/Remover NSA -->
 <div style="display: inline-block; margin-right: 20px;">
-    <form method="post" action="{% if indicador_man.NSA %}{% url 'remover_nsa' curso.id indicador_man.indicador_info.id %}{% else %}{% url 'aplicar_nsa' curso.id indicador_man.indicador_info.id %}{% endif %}" class="inline-form" onsubmit="return confirmNSA({{ indicador_man.NSA|yesno:'true,false' }})">
+    <form method="post" action="{% if indicador_man.NSA %}{% url 'remover_nsa' curso.id indicador_man.indicador_info.id %}{% else %}{% url 'aplicar_nsa' curso.id indicador_man.indicador_info.id %}{% endif %}" class="inline-form" onsubmit="return confirmarAplicarNSA('{{ indicador_man.indicador_info.nome }}', {{ has_relatorio|yesno:'true,false' }}, {{ nivel_suposto_vazio|yesno:'false,true' }})">
         {% csrf_token %}
         <button type="submit" class="btn btn-primary">
             {% if indicador_man.NSA %}
@@ -27,16 +28,8 @@
     </form>
 </div>
 
-<script>
-    function confirmNSA(isNSA) {
-        if (isNSA === "false") {
-            return confirm("Aplicar NSA apagará, se existirem, o relatório e o nível de conceito. Deseja continuar?");
-        }
-        return true;
-    }
-</script>
 
-<!-- Seleção de Nível Suposto (1 a 5) e Opções de Relatório (se NSA estiver desativado) -->
+<!-- Seleção de Nível Suposto e Opções de Relatório -->
 {% if not indicador_man.NSA %}
     <div style="display: inline-block;">
         <form method="post" action="{% url 'aplicar_nivel_suposto' curso.id indicador_man.indicador_info.id %}" class="inline-form">
@@ -52,7 +45,6 @@
             <p><strong>Data de Envio:</strong> {{ indicador_man.data_envio }}</p>
             <p><strong>Usuário que enviou:</strong> {{ indicador_man.usuario_relatorio.nome }}</p>
 
-            <!-- Ícones alinhados usando Flexbox -->
             <div style="display: flex; align-items: center; gap: 10px;">
                 <a href="{% url 'baixar_relatorio' curso.id indicador_man.indicador_info.id %}">
                     <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
@@ -62,7 +54,7 @@
                     <img class="icon" src="{% static 'icons/substituir.png' %}" alt="Substituir" style="width: 20px;">
                 </a>
 
-                <form method="post" action="{% url 'deletar_relatorio' curso.id indicador_man.indicador_info.id %}" class="inline-form" style="margin: 0;">
+                <form method="post" action="{% url 'deletar_relatorio' curso.id indicador_man.indicador_info.id %}" class="inline-form" style="margin: 0;" onsubmit="return confirmarDeletarRelatorio('{{ indicador_man.indicador_info.nome }}');">
                     {% csrf_token %}
                     <button type="submit" style="border: none; background: none; padding: 0;">
                         <img class="icon" src="{% static 'icons/cancelar.png' %}" alt="Deletar" style="width: 20px;">
@@ -81,18 +73,6 @@
             <input type="file" name="conteudo" id="file-upload" style="display: none;">
         </form>
     </div>
-
-    <script>
-        document.getElementById("file-upload").onchange = function() {
-            document.getElementById("enviar-relatorio-form").submit();
-        };
-
-        function confirmarSubstituirRelatorio() {
-            if (confirm("O relatório já existente será apagado para salvar o novo. Deseja continuar?")) {
-                document.getElementById("file-upload").click();
-            }
-        }
-    </script>
 {% endif %}
 
 <!-- Tabela de Conceitos -->
@@ -109,4 +89,32 @@
         </tr>
     {% endfor %}
 </table>
+
+<script>
+    // Submete o formulário de upload de relatório automaticamente após selecionar o arquivo
+    document.getElementById("file-upload").onchange = function() {
+        document.getElementById("enviar-relatorio-form").submit();
+    };
+
+    // Confirmação para aplicar NSA, verificando se há relatório ou conceito
+    function confirmarAplicarNSA(nomeIndicador, hasReport, nivelSupostoVazio) {
+        if (hasReport || !nivelSupostoVazio) {
+            return confirm(`Aplicar NSA apagará o relatório e/ou o conceito para o indicador ${nomeIndicador}. Deseja continuar?`);
+        }
+        return true;
+    }
+
+    // Confirmação para substituir relatório
+    function confirmarSubstituirRelatorio() {
+        if (confirm("O relatório já existente será apagado para salvar o novo. Deseja continuar?")) {
+            document.getElementById("file-upload").click();
+        }
+    }
+
+
+    function confirmarDeletarRelatorio(nomeIndicador) {
+        return confirm(`Você deseja continuar com a exclusão do relatório do indicador ${nomeIndicador}?`);
+    }
+
+</script>
 {% endblock %}
