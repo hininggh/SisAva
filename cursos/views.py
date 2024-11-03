@@ -13,6 +13,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from mural.forms import MuralForm
 from mural.models import Mural
+from reportlab.lib.units import cm
 from .forms import CapaCursoForm
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
@@ -26,7 +27,7 @@ import logging
 def criar_ou_editar_curso(request, curso_id=None):
     if curso_id:
         curso = get_object_or_404(Curso, id=curso_id)
-        if request.user != curso.criador:
+        if request.user != curso.criador and not (curso.privilegios and request.user in curso.relatores.all()):
             return redirect('homerelator')
     else:
         curso = None
@@ -169,7 +170,7 @@ def enviar_ou_substituir_capa(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
 
     # Verificar permissões de acordo com privilégios e relação com o criador
-    if (curso.privilegios and request.user in curso.relatores.all()) or (not curso.privilegios and request.user == curso.criador):
+    if not ((request.user == curso.criador) or (curso.privilegios and request.user in curso.relatores.all())):
         if request.method == 'POST' and request.FILES.get('capa'):
             # Verifica se já existe uma capa
             capa_existente = curso.capa is not None
@@ -203,36 +204,18 @@ def baixar_capa(request, curso_id):
     return redirect('visualizar_curso', curso_id=curso.id)
 
 
-# Substituir Capa
-@login_required
-def substituir_capa(request, curso_id):
-    curso = get_object_or_404(Curso, id=curso_id)
-    if request.user != curso.criador:
-        return redirect('homerelator')  # Apenas o criador pode substituir a capa
-
-    if request.method == 'POST' and request.FILES.get('capa'):
-        curso.capa = request.FILES['capa']
-        curso.save()
-
-        # Registrar no log
-        acao = "Capa Substituída"
-        registrar_acao_log(request.user, curso, acao, None)
-
-        return redirect('visualizar_curso', curso_id=curso.id)
-    return redirect('visualizar_curso', curso_id=curso.id)
-
-
 # Deletar Capa
 @login_required
 def deletar_capa(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    if curso.capa:
-        curso.capa.delete()
-        curso.save()
+    if not ((request.user == curso.criador) or (curso.privilegios and request.user in curso.relatores.all())):
+        if curso.capa:
+            curso.capa.delete()
+            curso.save()
 
-        # Registrar no log
-        acao = "Capa Deletada"
-        registrar_acao_log(request.user, curso, acao, None)
+            # Registrar no log
+            acao = "Capa Deletada"
+            registrar_acao_log(request.user, curso, acao, None)
 
         return redirect('visualizar_curso', curso_id=curso.id)
     return redirect('visualizar_curso', curso_id=curso.id)
@@ -242,40 +225,41 @@ def deletar_capa(request, curso_id):
 @login_required
 def editar_informacoes_complementares(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    if request.user != curso.criador:
-        return redirect('homerelator')  # Somente o criador pode editar as informações complementares
+
+    # Verificar permissões
+    if not ((request.user == curso.criador) or (curso.privilegios and request.user in curso.relatores.all())):
+        return redirect('visualizar_curso', curso_id=curso.id)
 
     if request.method == 'POST':
-        form = InformacoesComplementaresForm(request.POST, instance=curso)
-        if form.is_valid():
-            form.save()
+        informacoes_complementares = request.POST.get('informacoes_complementares', '')
+        curso.informacoes_complementares = informacoes_complementares
+        curso.save()
 
-            # Registrar no log
-            acao = "Informações Complementares Editadas"
-            registrar_acao_log(request.user, curso, acao, None)
-
-            return redirect('visualizar_curso', curso_id=curso.id)
-    else:
-        form = InformacoesComplementaresForm(instance=curso)
-
-    return render(request, 'cursos/editar_informacoes_complementares.html', {'form': form, 'curso': curso})
+        # Redirecionar para a página de visualização do curso
+        return redirect('visualizar_curso', curso_id=curso.id)
 
 
 # Gerar Relatório Geral
-@login_required
+
 @login_required
 def gerar_relatorio_geral(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
 
-    # Verifica se o usuário é visitante ou relator
+    # Verifica se o usuário é relator ou visitante com permissão
     if request.user not in curso.relatores.all() and request.user.tipo != 'visitante':
-        return redirect('homevisitante')  # Caso o usuário não tenha acesso
+        return redirect('homevisitante')
 
-    # Iniciar o texto do relatório
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
-    c.drawString(100, 800, f"Relatório Geral do Curso: {curso.nome}")
-    c.drawString(100, 780, f"Data: {timezone.now().strftime('%d/%m/%Y')}")
+
+    # Margens
+    left_margin = 1 * cm
+    right_margin = 0.5 * cm
+    cont_margin = 0.5 * cm  # Margem esquerda para linhas de continuação
+
+    # Data e hora na primeira página
+    c.drawString(left_margin, 27 * cm, f"Relatório Geral do Curso: {curso.nome}")
+    c.drawString(left_margin, 26.5 * cm, f"Data e Hora: {timezone.now().strftime('%d/%m/%Y %H:%M')}")
 
     # Agrupar os indicadores por dimensão
     dimensoes = {
@@ -283,57 +267,81 @@ def gerar_relatorio_geral(request, curso_id):
         'Corpo Docente e Tutorial': [],
         'Infraestrutura': []
     }
-
     indicadores = curso.indicadorman_set.all()
 
     for indicador in indicadores:
         dimensao = indicador.indicador_info.get_dimensao_display()
         dimensoes[dimensao].append(indicador)
 
-    # Escrever os indicadores divididos por dimensão
-    for dimensao, lista_indicadores in dimensoes.items():
-        c.showPage()
-        c.drawString(100, 800, f"Dimensão: {dimensao}")
-        for indicador in lista_indicadores:
-            texto_indicador = f"Indicador: {indicador.indicador_info.nome}"
-            texto_indicador += f" | NSA: {indicador.NSA}" if indicador.NSA else f" | Nível: {indicador.nivel_suposto}"
-            texto_indicador += " | Relatório presente" if indicador.conteudo else " | Relatório ausente"
-            c.drawString(100, 760 - (20 * lista_indicadores.index(indicador)), texto_indicador)
+    # Escrever os indicadores com quebra de linha e margens ajustadas
+    line_height = 0.7 * cm
+    y_position = 25 * cm
 
-    # Adicionar as Informações Complementares
+    for dimensao, lista_indicadores in dimensoes.items():
+        # Nova página para cada dimensão se necessário
+        if y_position < 2 * cm:
+            c.showPage()
+            y_position = 27 * cm
+
+        # Título da dimensão
+        c.drawString(left_margin, y_position, f"Dimensão: {dimensao}")
+        y_position -= line_height
+
+        for indicador in lista_indicadores:
+            # Condicional para formatar o texto do indicador conforme o valor de NSA e nivel_suposto
+            if indicador.NSA:
+                texto = f"Indicador: {indicador.indicador_info.nome} | NSA"
+            else:
+                nivel_texto = f"Nível: {indicador.nivel_suposto or 'vazio'}"
+                relatorio_texto = " | Relatório presente" if indicador.conteudo else " | Relatório ausente"
+                texto = f"Indicador: {indicador.indicador_info.nome} | {nivel_texto}{relatorio_texto}"
+
+            # Ajustar a linha e a posição no PDF
+            max_width = 19 * cm
+            words = texto.split()
+            current_line = ""
+            for word in words:
+                if c.stringWidth(current_line + word + " ") < max_width:
+                    current_line += word + " "
+                else:
+                    c.drawString(left_margin if y_position == 25 * cm else cont_margin, y_position, current_line)
+                    y_position -= line_height
+                    current_line = word + " "
+            c.drawString(left_margin if y_position == 25 * cm else cont_margin, y_position, current_line)
+            y_position -= line_height
+
+    # Informações Complementares em uma nova página
     c.showPage()
-    c.drawString(100, 800, "Informações Complementares")
-    c.drawString(100, 780, curso.informacoes_complementares or "Sem informações complementares")
+    c.drawString(left_margin, 27 * cm, "Informações Complementares")
+    y_position = 26.5 * cm
+    informacoes_texto = curso.informacoes_complementares or "Sem informações complementares"
+    for line in informacoes_texto.splitlines():
+        c.drawString(left_margin, y_position, line)
+        y_position -= line_height
 
     c.save()
     buffer.seek(0)
-
-    # Criar o PDF do relatório (com texto gerado)
     relatorio_gerado = buffer
 
     # Mesclar a capa (se houver), o relatório gerado, e os relatórios dos indicadores
     merger = PdfMerger()
 
     if curso.capa:
-        merger.append(curso.capa)  # Mesclar a capa primeiro
+        merger.append(curso.capa)
 
-    merger.append(relatorio_gerado)  # Mesclar o relatório gerado
+    merger.append(relatorio_gerado)
 
-    # Mesclar os relatórios dos indicadores
     for indicador in indicadores:
         if indicador.conteudo:
-            merger.append(indicador.conteudo)  # Mesclar relatórios
+            merger.append(indicador.conteudo)
 
-    # Salvar o resultado final em um arquivo temporário
     resultado_final = BytesIO()
     merger.write(resultado_final)
     resultado_final.seek(0)
 
-    # Registrar no log
     acao = "Relatório Geral Gerado"
     registrar_acao_log(request.user, curso, acao, None)
 
-    # Retornar o relatório geral finalizado como resposta
     response = HttpResponse(resultado_final, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="relatorio_geral_{curso.nome}.pdf"'
 

@@ -4,10 +4,11 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import MuralForm  # Importando o formulário MuralForm
 from cursos.models import Curso
+from .models import Mural
 
 from .models import Mural  # Importando o modelo Mural
 
-from .models import Mural
+
 
 @login_required
 def atualizar_mural(request, curso_id):
@@ -31,8 +32,7 @@ def atualizar_mural(request, curso_id):
 @login_required
 @require_POST
 def postar_mensagem(request, curso_id):
-    curso = get_object_or_404('cursos.Curso', id=curso_id)  # Referenciar 'Curso' como string
-    form = MuralForm(request.POST)
+    curso = get_object_or_404(Curso, id=curso_id)  # Use Curso diretamente, sem aspas
     form = MuralForm(request.POST)
 
     if form.is_valid():

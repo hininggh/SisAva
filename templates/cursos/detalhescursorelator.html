@@ -30,16 +30,60 @@
   .indicador-info:last-child {
     border-bottom: none;
   }
+
+  .btn-container {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start; /* Alinha os botões à esquerda */
+  }
+
+
+  /* Estilos para as mensagens do mural */
+  .mural-message {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      position: relative;
+  }
+
+  .mural-message h3 {
+      margin: 0;
+      font-size: 1.1em;
+      font-weight: bold;
+  }
+
+  .mural-message p {
+      margin: 5px 0;
+      font-size: 1em;
+  }
+
+  .mural-message .message-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+  }
+
+  .mural-message .message-actions button {
+      margin-left: 5px;
+      font-size: 0.9em;
+  }
+
 </style>
 
-
+<div class="container mt-4">
     <div class="minimizable">
         <h2>{{ curso.nome }}</h2>
         <div class="minimizable-content">
             <p><strong>Inscrição:</strong> {{ curso.inscricao }}</p>
             <p><strong>Detalhes:</strong> {{ curso.detalhes }}</p>
-            <div class="text-center mt-4">
-                <a href="{% url 'editar_curso' curso.id %}" class="btn btn-primary">Editar Curso</a>
+
+            <!-- Alinhar os botões à esquerda -->
+            <div class="btn-container mt-4">
+                {% if request.user == curso.criador or privilegios %}
+                    <a href="{% url 'editar_curso' curso.id %}" class="btn btn-primary">Editar Curso</a>
+                {% endif %}
                 <a href="{% url 'gerar_relatorio_geral' curso.id %}" class="btn btn-secondary">Gerar Relatório Geral</a>
             </div>
 
@@ -78,21 +122,24 @@
             {% endif %}
         </div>
     </div>
+</div>
+
 
     <!-- Mural -->
     <div class="mural-section">
-            <!-- Caixa de entrada de mensagem do usuário logado, minimizada -->
-        <div class="mural-section">
-            <div class="minimizable">
-                <h2>Mural de Mensagens</h2>
-                <div class="minimizable-content">
+        <div class="minimizable">
+            <h2>Mural de Mensagens</h2>
+            <div class="minimizable-content" style="display: none;">
                 <button class="btn btn-secondary btn-sm" onclick="toggleMessageBox()">Abrir Caixa de Mensagem</button>
                 <form id="form-postar-mensagem" onsubmit="postarMensagem(event)" style="display: none;">
                     {% csrf_token %}
                     <textarea name="mensagem" class="form-control" placeholder="Escreva sua mensagem"></textarea>
                     <button type="submit" class="btn btn-primary mt-2">Postar</button>
                 </form>
-            <div id="mural-messages" class="mt-3"></div>
+
+                <!-- Container das mensagens do mural -->
+                <div id="mural-messages" class="mt-3"></div>
+            </div>
         </div>
     </div>
 
@@ -155,15 +202,29 @@
     <div class="minimizable">
         <h2>Informações Complementares</h2>
         <div class="minimizable-content">
-            <p>{{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
+            <div id="informacoes-complementares-content">
+                <p>{{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
+            </div>
+
+            {% if request.user == curso.criador or privilegios %}
+                <button id="editar-informacoes-btn" class="btn btn-primary btn-sm mt-2" onclick="toggleEditInformacoes()">Editar</button>
+            {% endif %}
+
+            <!-- Formulário de edição das Informações Complementares -->
+            <form id="form-editar-informacoes" method="post" action="{% url 'editar_informacoes_complementares' curso.id %}" style="display: none;">
+                {% csrf_token %}
+                <textarea name="informacoes_complementares" class="form-control mt-2">{{ curso.informacoes_complementares }}</textarea>
+                <button type="submit" class="btn btn-success btn-sm mt-2">Salvar</button>
+                <button type="button" class="btn btn-secondary btn-sm mt-2" onclick="toggleEditInformacoes()">Cancelar</button>
+            </form>
         </div>
     </div>
 </div>
 
 <script>
+    // ------------------------------MURAL-------------------------
 
-
-        // Função para exibir a caixa de mensagem do usuário logado
+    // Função para exibir a caixa de mensagem do usuário logado
     function toggleMessageBox() {
         const form = document.getElementById("form-postar-mensagem");
         form.style.display = form.style.display === "none" ? "block" : "none";
@@ -203,17 +264,23 @@
         })
         .then(response => response.json())
         .then(data => {
-            const muralContainer = document.querySelector(".mural-messages");
+            const muralContainer = document.getElementById("mural-messages");
             muralContainer.innerHTML = '';  // Limpa a lista atual
 
             data.mensagens.forEach(mensagem => {
                 const mensagemElement = document.createElement("div");
                 mensagemElement.classList.add("mural-message");
+
+                const titulo = mensagem.pode_editar ? "Minha mensagem compartilhada" : mensagem.autor;
+
                 mensagemElement.innerHTML = `
-                    <strong>${mensagem.autor}</strong>: ${mensagem.mensagem}
+                    <h3>${titulo}</h3>
+                    <p>${mensagem.mensagem}</p>
                     ${mensagem.pode_editar ? `
-                        <button onclick="editarMensagem(${mensagem.id})" class="btn btn-link btn-sm">Editar</button>
-                        <button onclick="apagarMensagem(${mensagem.id})" class="btn btn-danger btn-sm">Apagar</button>
+                        <div class="message-actions">
+                            <button onclick="editarMensagem(${mensagem.id})" class="btn btn-primary btn-sm">Editar</button>
+                            <button onclick="apagarMensagem(${mensagem.id})" class="btn btn-danger btn-sm">Apagar</button>
+                        </div>
                     ` : ""}
                 `;
                 muralContainer.appendChild(mensagemElement);
@@ -273,6 +340,26 @@
         atualizarMural();
     });
 
+
+    // Função para alternar entre o modo de exibição e o modo de edição
+    function toggleEditInformacoes() {
+        const contentDiv = document.getElementById("informacoes-complementares-content");
+        const formDiv = document.getElementById("form-editar-informacoes");
+        const editButton = document.getElementById("editar-informacoes-btn");
+
+        if (formDiv.style.display === "none") {
+            formDiv.style.display = "block";
+            contentDiv.style.display = "none";
+            editButton.style.display = "none";
+        } else {
+            formDiv.style.display = "none";
+            contentDiv.style.display = "block";
+            editButton.style.display = "block";
+        }
+    }
+
+  // ---------------------MINIMIZAÇÃO----------------
+
     //minimizar
     document.addEventListener("DOMContentLoaded", function() {
         const minimizables = document.querySelectorAll('.minimizable h2');
@@ -286,6 +373,8 @@
             });
         });
     });
+
+// ------------------------------RELAToRIO-------------------------
 
     // Submete o formulário automaticamente após selecionar o arquivo
     document.getElementById("file-upload").onchange = function() {
@@ -305,13 +394,10 @@
     }
 
 
+// ------------------------------CAPA-------------------------
 
       // Função de confirmação para substituição da capa
-    function confirmarSubstituirCapa() {
-        if (confirm("Substituir apagará a capa atual da Avaliação. Deseja continuar?")) {
-            document.getElementById('file-upload-capa').click();
-        }
-    }
+
 
     // Função de confirmação para exclusão da capa
     function confirmarDeletarCapa() {
@@ -327,6 +413,9 @@
     function confirmarDeletarCapa() {
         return confirm("Você está apagando a CAPA da avaliação do curso {{ curso.nome }}. Deseja continuar?");
     }
+
+
+
 </script>
 
 {% endblock %}
