@@ -13,6 +13,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from mural.forms import MuralForm
 from mural.models import Mural
+from .forms import CapaCursoForm
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 import os
@@ -148,13 +149,42 @@ def visualizar_curso(request, curso_id):
             'curso': curso,
             'indicadores_por_dimensao': indicadores_por_dimensao,
             'mensagens': mensagens,
+            'privilegios': curso.privilegios,  # Passa a condição de privilégios ao template
             'form_mural': form_mural,
+            'usuario_autorizado': (curso.privilegios and request.user in curso.relatores.all()) or (
+                        not curso.privilegios and request.user == curso.criador)
         }
 
         return render(request, 'cursos/detalhescursorelator.html', context)
     else:
         return render(request, 'cursos/detalhescursovisitante.html', {'curso': curso})
 
+
+
+#-----------------------views capa
+
+
+@login_required
+def enviar_ou_substituir_capa(request, curso_id):
+    curso = get_object_or_404(Curso, id=curso_id)
+
+    # Verificar permissões de acordo com privilégios e relação com o criador
+    if (curso.privilegios and request.user in curso.relatores.all()) or (not curso.privilegios and request.user == curso.criador):
+        if request.method == 'POST' and request.FILES.get('capa'):
+            # Verifica se já existe uma capa
+            capa_existente = curso.capa is not None
+            curso.capa = request.FILES['capa']
+            curso.save()
+
+            # Registrar a ação de acordo com a existência anterior da capa
+            acao = "Capa Substituída" if capa_existente else "Capa Enviada"
+            registrar_acao_log(request.user, curso, acao)
+
+            # Redirecionar para a página de visualização do curso após o upload
+            return redirect('visualizar_curso', curso_id=curso.id)
+
+    # Redireciona para visualização do curso caso não tenha permissão
+    return redirect('visualizar_curso', curso_id=curso.id)
 
 
 # Baixar Capa
@@ -189,7 +219,7 @@ def substituir_capa(request, curso_id):
         registrar_acao_log(request.user, curso, acao, None)
 
         return redirect('visualizar_curso', curso_id=curso.id)
-    return render(request, 'cursos/substituir_capa.html', {'curso': curso})
+    return redirect('visualizar_curso', curso_id=curso.id)
 
 
 # Deletar Capa

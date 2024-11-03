@@ -18,7 +18,13 @@ class CursoForm(forms.ModelForm):
         }
 
 
-
+class CapaCursoForm(forms.ModelForm):
+    class Meta:
+        model = Curso
+        fields = ['capa']
+        labels = {
+            'capa': 'Enviar Capa do Curso',
+        }
 
 # Formulário para editar as informações complementares
 class InformacoesComplementaresForm(forms.ModelForm):

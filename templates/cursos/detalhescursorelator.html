@@ -33,8 +33,6 @@
 </style>
 
 
-<div class="container mt-4">
-    <!-- Curso e Inscrição -->
     <div class="minimizable">
         <h2>{{ curso.nome }}</h2>
         <div class="minimizable-content">
@@ -44,6 +42,40 @@
                 <a href="{% url 'editar_curso' curso.id %}" class="btn btn-primary">Editar Curso</a>
                 <a href="{% url 'gerar_relatorio_geral' curso.id %}" class="btn btn-secondary">Gerar Relatório Geral</a>
             </div>
+
+            <!-- Seção de Manipulação de Capa -->
+            {% if usuario_autorizado %}
+                <div style="margin-top: 20px;">
+                    {% if curso.capa %}
+                        <p><strong>Capa da Avaliação:</strong> {{ curso.capa.name }}</p>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <a href="{% url 'baixar_capa' curso.id %}">
+                                <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar Capa" style="width: 20px;">
+                            </a>
+                            <a href="#" onclick="confirmarSubstituirCapa()">
+                                <img class="icon" src="{% static 'icons/substituir.png' %}" alt="Substituir Capa" style="width: 20px;">
+                            </a>
+                            <form method="post" action="{% url 'deletar_capa' curso.id %}" class="inline-form" style="margin: 0;" onsubmit="return confirmarDeletarCapa();">
+                                {% csrf_token %}
+                                <button type="submit" style="border: none; background: none; padding: 0;">
+                                    <img class="icon" src="{% static 'icons/cancelar.png' %}" alt="Deletar Capa" style="width: 20px;">
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <p><strong>Capa da Avaliação:</strong> Nenhuma capa enviada</p>
+                        <a href="#" onclick="document.getElementById('file-upload-capa').click();">
+                            <img class="icon" src="{% static 'icons/envio.png' %}" alt="Enviar Capa" style="width: 20px;">
+                        </a>
+                    {% endif %}
+
+                    <!-- Formulário de envio/substituição de capa -->
+                    <form id="enviar-capa-form" method="post" enctype="multipart/form-data" action="{% url 'enviar_ou_substituir_capa' curso.id %}">
+                        {% csrf_token %}
+                        <input type="file" name="capa" id="file-upload-capa" style="display: none;" onchange="document.getElementById('enviar-capa-form').submit();">
+                    </form>
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -272,6 +304,29 @@
         return confirm(`Você realmente deseja apagar o relatório do indicador ${nomeIndicador}?`);
     }
 
+
+
+      // Função de confirmação para substituição da capa
+    function confirmarSubstituirCapa() {
+        if (confirm("Substituir apagará a capa atual da Avaliação. Deseja continuar?")) {
+            document.getElementById('file-upload-capa').click();
+        }
+    }
+
+    // Função de confirmação para exclusão da capa
+    function confirmarDeletarCapa() {
+        return confirm("Você está apagando a CAPA da avaliação do curso. Deseja continuar?");
+    }
+
+    function confirmarSubstituirCapa() {
+        if (confirm("Substituir apagará a capa atual da Avaliação. Deseja continuar?")) {
+            document.getElementById('file-upload-capa').click();
+        }
+    }
+
+    function confirmarDeletarCapa() {
+        return confirm("Você está apagando a CAPA da avaliação do curso {{ curso.nome }}. Deseja continuar?");
+    }
 </script>
 
 {% endblock %}
