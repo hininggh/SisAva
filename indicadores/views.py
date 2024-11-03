@@ -41,25 +41,8 @@ def visualizar_indicador(request, curso_id, indicador_id):
 
     return render(request, 'indicadores/detalhesindicadorrelator.html', context)
 
-# Enviar Relatório
-@login_required
-def enviar_ou_substituir_relatorio(request, curso_id, indicador_id):
-    curso = get_object_or_404(Curso, id=curso_id)
-    indicador = get_object_or_404(IndicadorMan, id=indicador_id)
 
-    # Verificar se a requisição é POST e contém um arquivo
-    if request.method == 'POST' and request.FILES.get('conteudo'):
-        indicador.conteudo = request.FILES['conteudo']
-        indicador.data_envio = timezone.now()
-        indicador.usuario_relatorio = request.user
-        indicador.save()
 
-        # Definir a ação com base na existência prévia do relatório
-        acao = "Relatório Substituído" if indicador.conteudo else "Relatório Enviado"
-        registrar_acao_log(request.user, curso, acao, indicador)
-
-    # Redireciona de volta para a página de visualização do indicador
-    return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
 
 
 # Baixar Relatório
@@ -118,6 +101,9 @@ def deletar_relatorio(request, curso_id, indicador_id):
     curso = get_object_or_404(Curso, id=curso_id)
     indicador = get_object_or_404(IndicadorMan, id=indicador_id)
 
+    # Verificar o parâmetro de origem
+    origem = request.GET.get('origem', 'indicador')  # padrão para 'indicador' se o parâmetro não for passado
+
     if indicador.conteudo:
         indicador.conteudo.delete()
     indicador.data_envio = None
@@ -128,6 +114,35 @@ def deletar_relatorio(request, curso_id, indicador_id):
     acao = "Relatório Deletado"
     registrar_acao_log(request.user, curso, acao, indicador)
 
+    # Redireciona para a página de origem
+    if origem == 'curso':
+        return redirect('visualizar_curso', curso_id=curso.id)
+    return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
+
+
+# Enviar Relatório
+@login_required
+def enviar_ou_substituir_relatorio(request, curso_id, indicador_id):
+    curso = get_object_or_404(Curso, id=curso_id)
+    indicador = get_object_or_404(IndicadorMan, id=indicador_id)
+
+    # Verificar o parâmetro de origem
+    origem = request.GET.get('origem', 'indicador')  # padrão para 'indicador' se o parâmetro não for passado
+
+    # Verificar se a requisição é POST e contém um arquivo
+    if request.method == 'POST' and request.FILES.get('conteudo'):
+        acao = "Relatório Substituído" if indicador.conteudo else "Relatório Enviado"
+        indicador.conteudo = request.FILES['conteudo']
+        indicador.data_envio = timezone.now()
+        indicador.usuario_relatorio = request.user
+        indicador.save()
+
+        # Registrar no log
+        registrar_acao_log(request.user, curso, acao, indicador)
+
+    # Redireciona para a página de origem
+    if origem == 'curso':
+        return redirect('visualizar_curso', curso_id=curso.id)
     return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
 
 
