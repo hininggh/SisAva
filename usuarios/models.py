@@ -18,7 +18,11 @@ class UsuarioManager(BaseUserManager):
         return user
 
 
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+
 class Usuario(AbstractBaseUser):
+    # Tipos de usuário
     RELATOR = 'relator'
     VISITANTE = 'visitante'
 
@@ -36,6 +40,7 @@ class Usuario(AbstractBaseUser):
     tipo = models.CharField(max_length=10, choices=TIPO_USUARIO_CHOICES)
     data_inicial = models.DateTimeField(null=True, blank=True)  # Para visitantes
     data_final = models.DateTimeField(null=True, blank=True)  # Para visitantes
+    cursos_acesso = models.ManyToManyField('cursos.Curso', blank=True, related_name='visitantes')  # Adiciona lista de cursos para visitantes
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
 

@@ -1,14 +1,14 @@
 from django.contrib.auth import authenticate, login, logout  # Importa os métodos de autenticação
-from django.http import HttpResponseForbidden
-from .forms import UsuarioForm, VisitanteForm  # Certifique-se de importar VisitanteForm
-from .models import Usuario
-from django.shortcuts import render, redirect
+from django.http import HttpResponseForbidden  # Certifique-se de importar VisitanteForm
 from django.contrib.auth.decorators import login_required
 from cursos.models import Curso
-
-
-
-
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Usuario
+from .forms import UsuarioForm, CadastroVisitanteForm, AdicionarCursosForm
+import json
+from django.db.models import Q  # Adicione esta importação
+from django.http import JsonResponse
+from django.urls import reverse
 
 
 # Verifica se o usuário é um relator
@@ -74,31 +74,78 @@ def cadastro_view(request):
 
 # Cadastro de Visitante (apenas relatores podem acessar)
 @login_required
-def cadastro_visitante_view(request):
-    if not is_relator(request.user):
-        return HttpResponseForbidden("Acesso negado. Apenas relatores podem cadastrar visitantes.")
+def cadastrar_ou_editar_visitante(request, curso_id=None, visitante_id=None):
+    visitante = get_object_or_404(Usuario, id=visitante_id) if visitante_id else None
+    curso = get_object_or_404(Curso, id=curso_id) if curso_id else None
+    usuario = request.user  # Usuário logado
+
+    # Define cursos disponíveis para o usuário logado
+    cursos_criador = Curso.objects.filter(criador=usuario)
+    cursos_relatados_com_privilegios = Curso.objects.filter(
+        relatores=usuario, privilegios=True
+    ).exclude(criador=usuario)
+    cursos_disponíveis = (cursos_criador | cursos_relatados_com_privilegios).distinct()
 
     if request.method == 'POST':
-        form = VisitanteForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('gerenciarvisitantes')
+        # Processamento do formulário inicial
+        form_basico = CadastroVisitanteForm(request.POST, instance=visitante)
+        if form_basico.is_valid():
+            visitante = form_basico.save(commit=False)
+            visitante.tipo = Usuario.VISITANTE
+            visitante.save()
+
+            # Se foi uma requisição AJAX, retorne JSON com dados do visitante e cursos
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                cursos_acesso = list(visitante.cursos.all().values('id', 'nome'))
+                cursos_disponiveis = list(cursos_disponíveis.exclude(id__in=[curso['id'] for curso in cursos_acesso]).values('id', 'nome'))
+                return JsonResponse({
+                    'status': 'Visitante salvo com sucesso!',
+                    'visitante_id': visitante.id,
+                    'cursos_acesso': cursos_acesso,
+                    'cursos_disponiveis': cursos_disponiveis,
+                    'curso_id': curso_id
+                })
+
+            # Redireciona apenas se não for uma requisição AJAX
+            return redirect('gerenciarvisitantes' if not curso_id else 'criar_ou_editar_curso', curso_id=curso_id)
     else:
-        form = VisitanteForm()
-    return render(request, 'usuarios/cadastrovisitante.html', {'form': form})
+        # Preparação dos formulários para GET
+        form_basico = CadastroVisitanteForm(instance=visitante)
+        form_cursos = AdicionarCursosForm() if visitante_id else None
+
+    cursos_acesso = visitante.cursos.all() if visitante else Curso.objects.none()
+
+    return render(request, 'usuarios/cadastrovisitante.html', {
+        'form_basico': form_basico,
+        'form_cursos': form_cursos,
+        'curso': curso,
+        'visitante': visitante,
+        'cursos_disponiveis': cursos_disponíveis,
+        'cursos_acesso': cursos_acesso,
+    })
 
 
-# Gerenciar Visitantes (apenas relatores podem acessar)
+def adicionar_curso_visitante(request, visitante_id):
+    visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
+
+    if request.method == "POST":
+        data = json.loads(request.body)
+        curso_id = data.get('curso_id')
+        curso = get_object_or_404(Curso, id=curso_id)
+
+        visitante.cursos_acesso.add(curso)
+        return JsonResponse({'status': 'Curso adicionado com sucesso!', 'curso_nome': curso.nome})
+
+    return JsonResponse({'status': 'Método inválido'}, status=400)
+
+
 @login_required
-def gerenciar_visitantes_view(request):
+def gerenciarvisitantes(request):
     if not is_relator(request.user):
         return HttpResponseForbidden("Acesso negado. Apenas relatores podem gerenciar visitantes.")
 
     visitantes = Usuario.objects.filter(tipo='visitante')
     return render(request, 'usuarios/gerenciarvisitantes.html', {'visitantes': visitantes})
-
-
-
 
 
 @login_required

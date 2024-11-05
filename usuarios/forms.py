@@ -1,5 +1,6 @@
 from django import forms
 from .models import Usuario
+from cursos.models import Curso
 
 
 class UsuarioForm(forms.ModelForm):
@@ -24,13 +25,27 @@ class UsuarioForm(forms.ModelForm):
             self.fields.pop('instituicao')
 
 
-class VisitanteForm(forms.ModelForm):
+class CadastroVisitanteForm(forms.ModelForm):
     class Meta:
         model = Usuario
-        fields = ['nome', 'email', 'telefone', 'instituicao']  # Campos para visitantes
+        fields = ['nome', 'instituicao', 'data_inicial', 'data_final', 'email']
         widgets = {
-            'nome': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'telefone': forms.TextInput(attrs={'class': 'form-control'}),
-            'instituicao': forms.TextInput(attrs={'class': 'form-control'}),
+            'nome': forms.TextInput(attrs={'class': 'form-control w-100'}),
+            'instituicao': forms.TextInput(attrs={'class': 'form-control w-100'}),
+            'data_inicial': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date'}),
+            'data_final': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control w-100'}),
         }
+
+
+
+class AdicionarCursosForm(forms.ModelForm):
+    cursos_acesso = forms.ModelMultipleChoiceField(
+        queryset=Curso.objects.all(),  # Filtre conforme necessário
+        widget=forms.CheckboxSelectMultiple,
+        required=False
+    )
+
+    class Meta:
+        model = Curso
+        fields = ['cursos_acesso']

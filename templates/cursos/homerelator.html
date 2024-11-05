@@ -6,8 +6,10 @@
 <div class="container mt-4">
     <h2 class="text-center">Bem-vindo, {{ user.nome }}</h2>
 
-    <div class="text-center mt-4">
-        <a href="{% url 'criar_curso' %}" class="btn btn-primary">Nova Avaliação de Curso</a>
+    <!-- Botões Nova Avaliação de Curso e Gerenciar Visitantes, lado a lado -->
+    <div class="text-center mt-4 d-flex justify-content-center">
+        <a href="{% url 'criar_curso' %}" class="btn btn-primary mx-2">Nova Avaliação de Curso</a>
+        <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-secondary mx-2">Gerenciar Visitantes</a>
     </div>
 
     {% if cursos_criados.exists %}
@@ -16,7 +18,7 @@
         <ul class="list-group">
             {% for curso in cursos_criados %}
             <li class="list-group-item">
-                <a href="{% url 'visualizar_curso' curso.id %}">{{ curso.nome }}</a>
+                <a href="{% url 'visualizar_curso' curso.id %}">{{ curso.nome }}</a> - <small>Inscrição: {{ curso.inscricao }}</small>
             </li>
             {% endfor %}
         </ul>
@@ -31,7 +33,7 @@
         <ul class="list-group">
             {% for curso in cursos_participante %}
             <li class="list-group-item">
-                <a href="{% url 'detalhescursorelator' curso.id %}">{{ curso.nome }}</a>
+                <a href="{% url 'detalhescursorelator' curso.id %}">{{ curso.nome }}</a> - <small>Inscrição: {{ curso.inscricao }}</small>
             </li>
             {% endfor %}
         </ul>
@@ -39,9 +41,5 @@
     {% else %}
     <p class="text-center">Você não está associado a nenhum curso.</p>
     {% endif %}
-
-    <div class="text-center mt-4">
-        <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-secondary">Gerenciar Visitantes</a>
-    </div>
 </div>
 {% endblock %}
