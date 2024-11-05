@@ -26,9 +26,11 @@ class UsuarioForm(forms.ModelForm):
 
 
 class CadastroVisitanteForm(forms.ModelForm):
+    senha = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label="Senha")
+
     class Meta:
         model = Usuario
-        fields = ['nome', 'instituicao', 'data_inicial', 'data_final', 'email']
+        fields = ['nome', 'instituicao', 'data_inicial', 'data_final', 'email', 'senha']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control w-100'}),
             'instituicao': forms.TextInput(attrs={'class': 'form-control w-100'}),
@@ -36,7 +38,6 @@ class CadastroVisitanteForm(forms.ModelForm):
             'data_final': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date'}),
             'email': forms.EmailInput(attrs={'class': 'form-control w-100'}),
         }
-
 
 
 class AdicionarCursosForm(forms.ModelForm):

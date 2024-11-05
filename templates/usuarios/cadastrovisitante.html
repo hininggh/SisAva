@@ -1,170 +1,80 @@
 {% extends 'base.html' %}
-{% load static %}
 {% load custom_filters %}
 {% block content %}
-<div class="container mt-4">
-    <h2 class="text-center">Cadastro de Visitante</h2>
+<div class="container mt-5">
+    <h2>{% if visitante %}Editar Visitante{% else %}Cadastrar Novo Visitante{% endif %}</h2>
 
-    <!-- Formulário inicial para dados básicos -->
-    <form id="visitante-form" method="post" class="mt-4 mx-auto" style="max-width: 500px;">
+    <form method="post">
         {% csrf_token %}
 
-        <!-- Campos do formulário alinhados -->
+        <!-- Formulário principal para dados do visitante -->
         <div class="form-group">
-            {{ form_basico.nome.label_tag }}
-            {{ form_basico.nome|add_class:"form-control w-100" }}
-        </div>
-        <div class="form-group">
-            {{ form_basico.instituicao.label_tag }}
-            {{ form_basico.instituicao|add_class:"form-control w-100" }}
-        </div>
-        <div class="form-group">
-            {{ form_basico.data_inicial.label_tag }}
-            {{ form_basico.data_inicial|add_class:"form-control w-100" }}
-        </div>
-        <div class="form-group">
-            {{ form_basico.data_final.label_tag }}
-            {{ form_basico.data_final|add_class:"form-control w-100" }}
-        </div>
-        <div class="form-group">
-            {{ form_basico.email.label_tag }}
-            {{ form_basico.email|add_class:"form-control w-100" }}
+            {{ form.nome.label_tag }}
+            {{ form.nome }}
+            {% if form.nome.errors %}
+                <div class="text-danger">{{ form.nome.errors }}</div>
+            {% endif %}
         </div>
 
-        <!-- Botão Salvar -->
-        <button type="submit" class="btn btn-primary w-100">Salvar</button>
+        <div class="form-group">
+            {{ form.email.label_tag }}
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="text-danger">{{ form.email.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.instituicao.label_tag }}
+            {{ form.instituicao }}
+            {% if form.instituicao.errors %}
+                <div class="text-danger">{{ form.instituicao.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.senha.label_tag }}
+            {{ form.senha }}
+            {% if form.senha.errors %}
+                <div class="text-danger">{{ form.senha.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.data_inicial.label_tag }}
+            {{ form.data_inicial }}
+            {% if form.data_inicial.errors %}
+                <div class="text-danger">{{ form.data_inicial.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            {{ form.data_final.label_tag }}
+            {{ form.data_final }}
+            {% if form.data_final.errors %}
+                <div class="text-danger">{{ form.data_final.errors }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Formulário para associar cursos ao visitante -->
+        <h3 class="mt-4">Cursos com Acesso</h3>
+        <div class="form-group">
+            {{ curso_form.cursos_acesso.label_tag }}
+            <div class="form-check">
+                {% for curso in curso_form.cursos_acesso %}
+                    <label class="form-check-label">
+                        {{ curso.tag }} {{ curso.choice_label }}
+                    </label>
+                {% endfor %}
+            </div>
+            {% if curso_form.cursos_acesso.errors %}
+                <div class="text-danger">{{ curso_form.cursos_acesso.errors }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Botões de ação -->
+        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+        <a href="{% if curso_id %}{% url 'editar_curso' curso_id=curso_id %}{% else %}{% url 'gerenciarvisitantes' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
     </form>
-
-    <!-- Sessão de cursos com acesso e disponíveis (exibida após salvar o formulário básico) -->
-    <div id="cursos-section" style="display: none; margin-top: 20px;">
-        <!-- Cursos com Acesso -->
-        <h4 class="text-center mt-4">Cursos com Acesso</h4>
-        <ul id="cursos-acesso-list" class="list-group mt-2 mx-auto" style="max-width: 500px;">
-            <!-- Cursos já adicionados ao visitante aparecerão aqui -->
-        </ul>
-
-        <!-- Botão Finalizar -->
-        <div class="text-center mt-4">
-            <button class="btn btn-success" onclick="finalizarCadastro()">Finalizar</button>
-        </div>
-
-        <!-- Cursos Disponíveis -->
-        <h4 class="text-center mt-5">Cursos Disponíveis</h4>
-        <ul id="cursos-disponiveis-list" class="list-group mt-2 mx-auto" style="max-width: 500px;">
-            <!-- Lista de cursos que podem ser adicionados aparecerá aqui -->
-        </ul>
-    </div>
 </div>
-
-<script>
-    document.getElementById('visitante-form').onsubmit = function(event) {
-        event.preventDefault();
-        const formData = new FormData(this);
-
-        fetch("{% url 'cadastrar_ou_editar_visitante' %}", {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        }).then(response => response.json())
-          .then(data => {
-              if (data.status === 'Visitante salvo com sucesso!') {
-                  window.visitante_id = data.visitante_id;
-                  document.getElementById('cursos-section').style.display = 'block';
-
-                  // Popula listas de cursos
-                  const cursosDisponiveisList = document.getElementById('cursos-disponiveis-list');
-                  const cursosAcessoList = document.getElementById('cursos-acesso-list');
-                  cursosDisponiveisList.innerHTML = '';
-                  cursosAcessoList.innerHTML = '';
-
-                  data.cursos_disponiveis.forEach(curso => {
-                      const item = document.createElement('li');
-                      item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-                      item.textContent = curso.nome;
-                      const addButton = document.createElement('button');
-                      addButton.textContent = 'Adicionar';
-                      addButton.classList.add('btn', 'btn-sm', 'btn-primary');
-                      addButton.onclick = () => adicionarCurso(curso.id);
-                      item.appendChild(addButton);
-                      cursosDisponiveisList.appendChild(item);
-                  });
-
-                  data.cursos_acesso.forEach(curso => {
-                      const item = document.createElement('li');
-                      item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-                      item.textContent = curso.nome;
-                      const removeButton = document.createElement('button');
-                      removeButton.textContent = 'Remover';
-                      removeButton.classList.add('btn', 'btn-sm', 'btn-danger');
-                      removeButton.onclick = () => removerCurso(curso.id);
-                      item.appendChild(removeButton);
-                      cursosAcessoList.appendChild(item);
-                  });
-              } else {
-                  alert('Erro ao salvar visitante. Verifique os dados e tente novamente.');
-              }
-          })
-          .catch(error => console.error('Erro ao processar a resposta:', error));
-    };
-
-    function adicionarCurso(cursoId) {
-        if (!window.visitante_id) {
-            console.warn("Visitante ainda não foi salvo. Salve as informações do visitante primeiro.");
-            return;
-        }
-
-        fetch(`/usuarios/adicionar_curso_visitante/${window.visitante_id}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ curso_id: cursoId })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP status ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'Curso adicionado com sucesso!') {
-                const item = document.createElement('li');
-                item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                item.innerHTML = `${data.curso_nome}
-                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerCurso(${cursoId})">Remover</button>`;
-                document.getElementById('cursos-acesso-list').appendChild(item);
-            } else {
-                console.error('Erro ao adicionar curso:', data);
-            }
-        })
-        .catch(error => console.error('Erro ao adicionar curso:', error));
-    }
-
-    function removerCurso(cursoId) {
-        if (!window.visitante_id) {
-            console.warn("Visitante ainda não foi salvo. Salve as informações do visitante primeiro.");
-            return;
-        }
-
-        fetch(`/usuarios/remover_curso_visitante/${window.visitante_id}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ curso_id: cursoId })
-        }).then(response => response.json())
-          .then(data => {
-              if (data.status === 'Curso removido com sucesso!') {
-                  location.reload();
-              }
-          });
-    }
-
-    function finalizarCadastro() {
-        const redirectUrl = "{% if curso_id %}{% url 'criar_ou_editar_curso' curso_id %}{% else %}{% url 'gerenciarvisitantes' %}{% endif %}";
-        window.location.href = redirectUrl;
-    }
-</script>
 {% endblock %}

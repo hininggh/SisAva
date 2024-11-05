@@ -9,6 +9,8 @@ import json
 from django.db.models import Q  # Adicione esta importação
 from django.http import JsonResponse
 from django.urls import reverse
+from django.contrib import messages
+from logs.views import registrar_acao_log
 
 
 # Verifica se o usuário é um relator
@@ -74,57 +76,53 @@ def cadastro_view(request):
 
 # Cadastro de Visitante (apenas relatores podem acessar)
 @login_required
-def cadastrar_ou_editar_visitante(request, curso_id=None, visitante_id=None):
-    visitante = get_object_or_404(Usuario, id=visitante_id) if visitante_id else None
-    curso = get_object_or_404(Curso, id=curso_id) if curso_id else None
-    usuario = request.user  # Usuário logado
+def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
+    # Verifica se o usuário atual é um relator e está autenticado
+    if not request.user.is_authenticated or request.user.tipo != Usuario.RELATOR:
+        messages.error(request, "Você não tem permissão para acessar esta página.")
+        return redirect('home')  # Redireciona para a página inicial ou outra página de acesso restrito
 
-    # Define cursos disponíveis para o usuário logado
-    cursos_criador = Curso.objects.filter(criador=usuario)
-    cursos_relatados_com_privilegios = Curso.objects.filter(
-        relatores=usuario, privilegios=True
-    ).exclude(criador=usuario)
-    cursos_disponíveis = (cursos_criador | cursos_relatados_com_privilegios).distinct()
+    visitante = None
+    if visitante_id:
+        # Edição de visitante existente
+        visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
+        form = CadastroVisitanteForm(request.POST or None, instance=visitante)
+        curso_form = AdicionarCursosForm(request.POST or None, instance=visitante)
+    else:
+        # Cadastro de novo visitante
+        form = CadastroVisitanteForm(request.POST or None)
+        curso_form = AdicionarCursosForm(request.POST or None)
 
     if request.method == 'POST':
-        # Processamento do formulário inicial
-        form_basico = CadastroVisitanteForm(request.POST, instance=visitante)
-        if form_basico.is_valid():
-            visitante = form_basico.save(commit=False)
+        if form.is_valid() and curso_form.is_valid():
+            visitante = form.save(commit=False)
             visitante.tipo = Usuario.VISITANTE
+            visitante.set_password(form.cleaned_data['senha'])  # Define a senha para o visitante
             visitante.save()
 
-            # Se foi uma requisição AJAX, retorne JSON com dados do visitante e cursos
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                cursos_acesso = list(visitante.cursos.all().values('id', 'nome'))
-                cursos_disponiveis = list(cursos_disponíveis.exclude(id__in=[curso['id'] for curso in cursos_acesso]).values('id', 'nome'))
-                return JsonResponse({
-                    'status': 'Visitante salvo com sucesso!',
-                    'visitante_id': visitante.id,
-                    'cursos_acesso': cursos_acesso,
-                    'cursos_disponiveis': cursos_disponiveis,
-                    'curso_id': curso_id
-                })
+            # Salva os cursos associados, limitando àqueles que o relator pode gerenciar
+            cursos_disponiveis = Curso.objects.filter(
+                Q(criador=request.user) | Q(privilegios=True)
+            )
+            visitante.cursos_acesso.set(curso_form.cleaned_data['cursos_acesso'].intersection(cursos_disponiveis))
 
-            # Redireciona apenas se não for uma requisição AJAX
-            return redirect('gerenciarvisitantes' if not curso_id else 'criar_ou_editar_curso', curso_id=curso_id)
-    else:
-        # Preparação dos formulários para GET
-        form_basico = CadastroVisitanteForm(instance=visitante)
-        form_cursos = AdicionarCursosForm() if visitante_id else None
+            messages.success(request, "Visitante salvo com sucesso.")
+            # Redireciona para a página adequada, dependendo do contexto
+            if curso_id:
+                return redirect('editar_curso', curso_id=curso_id)
+            else:
+                return redirect('gerenciarvisitantes')
 
-    cursos_acesso = visitante.cursos.all() if visitante else Curso.objects.none()
+        else:
+            messages.error(request, "Por favor, corrija os erros abaixo.")
 
     return render(request, 'usuarios/cadastrovisitante.html', {
-        'form_basico': form_basico,
-        'form_cursos': form_cursos,
-        'curso': curso,
+        'form': form,
+        'curso_form': curso_form,
         'visitante': visitante,
-        'cursos_disponiveis': cursos_disponíveis,
-        'cursos_acesso': cursos_acesso,
     })
 
-
+@login_required
 def adicionar_curso_visitante(request, visitante_id):
     visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
 
@@ -133,10 +131,37 @@ def adicionar_curso_visitante(request, visitante_id):
         curso_id = data.get('curso_id')
         curso = get_object_or_404(Curso, id=curso_id)
 
+        # Adiciona o curso ao visitante
         visitante.cursos_acesso.add(curso)
+
+        # Registra a ação de adição de curso ao visitante no log
+        registrar_acao_log(
+            usuario=request.user,
+            curso=curso,
+            acao=f"Curso '{curso.nome}' adicionado ao visitante {visitante.nome}"
+        )
+
         return JsonResponse({'status': 'Curso adicionado com sucesso!', 'curso_nome': curso.nome})
 
     return JsonResponse({'status': 'Método inválido'}, status=400)
+
+
+@login_required
+def excluir_visitante(request, visitante_id):
+    visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
+
+    if request.method == "GET":
+        # Registra a ação de exclusão do visitante no log antes da exclusão
+        registrar_acao_log(
+            usuario=request.user,
+            curso=None,  # Não há curso associado para exclusão do visitante
+            acao=f"Visitante {visitante.nome} da instituição {visitante.instituicao} excluído"
+        )
+
+        visitante.delete()
+        messages.success(request, f"O visitante {visitante.nome} foi excluído com sucesso.")
+
+    return redirect('gerenciarvisitantes')
 
 
 @login_required
