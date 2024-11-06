@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.utils import timezone
 from .models import Curso
 from usuarios.models import Usuario
@@ -54,7 +55,7 @@ def criar_ou_editar_curso(request, curso_id=None):
     else:
         form = CursoForm(instance=curso)
 
-    usuarios_disponiveis = Usuario.objects.exclude(id=curso.criador.id) if curso else Usuario.objects.all()
+    usuarios_disponiveis = Usuario.objects.filter(tipo=Usuario.RELATOR)
     relatores = curso.relatores.all() if curso else []
 
     # Retorna JSON com lista de relatores em requisições AJAX
@@ -68,6 +69,23 @@ def criar_ou_editar_curso(request, curso_id=None):
         'relatores': relatores,
         'usuarios_disponiveis': usuarios_disponiveis
     })
+
+@login_required
+def excluir_curso(request, curso_id):
+    # Obtém o curso ou retorna 404 se não for encontrado
+    curso = get_object_or_404(Curso, id=curso_id)
+
+    # Remove o curso de todos os visitantes antes de deletar
+    visitantes = Usuario.objects.filter(cursos_acesso=curso)
+    for visitante in visitantes:
+        visitante.cursos_acesso.remove(curso)
+
+    # Deleta o curso
+    curso.delete()
+    messages.success(request, "Curso deletado com sucesso.")
+
+    # Redireciona para a página inicial
+    return redirect('home')
 
 
 @login_required

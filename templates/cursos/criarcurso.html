@@ -44,6 +44,10 @@
     </form>
 
     <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Finalizar e Visualizar Curso</button>
+
+    <hr>
+    <h3>Excluir Curso</h3>
+    <button class="btn btn-danger mt-2" onclick="excluirCurso()">Excluir Curso</button>
     {% endif %}
 </div>
 
@@ -122,6 +126,27 @@
         // Função para finalizar o curso
         function finalizarCurso() {
             window.location.href = "{% url 'visualizar_curso' curso.id %}";
+        }
+        function excluirCurso() {
+            if (confirm("Tem certeza que deseja excluir este curso? Esta ação não poderá ser desfeita.")) {
+                fetch("{% url 'excluir_curso' curso.id %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Curso excluído com sucesso!");
+                        window.location.href = "{% url 'home' %}";  // Redireciona para a home após exclusão
+                    } else {
+                        alert("Erro ao excluir o curso. Tente novamente.");
+                    }
+                })
+                .catch(error => console.error("Erro ao excluir o curso:", error));
+            }
         }
     {% endif %}
 </script>

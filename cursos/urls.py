@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('criar/', views.criar_ou_editar_curso, name='criar_curso'),  # Criação de curso
     path('editar/<int:curso_id>/', views.criar_ou_editar_curso, name='editar_curso'),  # Edição de curso
+    path('excluir_curso/<int:curso_id>/', views.excluir_curso, name='excluir_curso'),  # Deletar curso
     path('<int:curso_id>/', views.visualizar_curso, name='visualizar_curso'),  # Visualização de curso
     path('adicionar_relator/<int:curso_id>/', views.adicionar_relator, name='adicionar_relator'),  # Adicionar relator
     path('enviar_ou_substituir_capa/<int:curso_id>/', views.enviar_ou_substituir_capa,
