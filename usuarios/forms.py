@@ -57,6 +57,8 @@ class CadastroVisitanteForm(forms.ModelForm):
         if senha and confirmar_senha and senha != confirmar_senha:
             self.add_error('confirmar_senha', "As senhas não coincidem.")
 
+        return cleaned_data
+
 
 
 class AdicionarCursosForm(forms.ModelForm):

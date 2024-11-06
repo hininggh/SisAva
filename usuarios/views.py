@@ -104,6 +104,12 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
                 visitante.tipo = Usuario.VISITANTE
                 visitante.set_password(form.cleaned_data['senha'])
                 visitante.save()
+                # Registra a ação de criação de visitante no log
+                registrar_acao_log(
+                    usuario=request.user,
+                    curso=None,
+                    acao=f"Visitante '{visitante.id}' nome {visitante.nome} criado"
+                )
                 if curso_id:
                     return redirect('cadastrar_ou_editar_visitante', curso_id=curso_id)
                 else:
@@ -116,11 +122,17 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
             if 'senha' in form.cleaned_data and form.cleaned_data['senha']:
                 visitante.set_password(form.cleaned_data['senha'])
             visitante.save()
-
+            # Registra a ação de edição do visitante no log
+            registrar_acao_log(
+                usuario=request.user,
+                curso=None,
+                acao=f"Visitante '{visitante.id}' nome {visitante.nome} editado"
+            )
             cursos_disponiveis = Curso.objects.filter(Q(criador=request.user) | Q(privilegios=True))
             visitante.cursos_acesso.set(curso_form.cleaned_data['cursos_acesso'].intersection(cursos_disponiveis))
 
             messages.success(request, "Visitante salvo com sucesso.")
+
             if curso_id:
                 return redirect('editar_curso', curso_id=curso_id)
             else:

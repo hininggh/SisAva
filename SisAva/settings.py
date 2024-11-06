@@ -111,11 +111,13 @@ AUTH_USER_MODEL = 'usuarios.Usuario'  # Ajuste se o nome do app ou model for dif
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'America/Sao_Paulo'
-USE_I18N = True
-USE_TZ = True
+LANGUAGE_CODE = 'en-us'
 
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
