@@ -25,11 +25,17 @@ class UsuarioForm(forms.ModelForm):
             self.fields.pop('instituicao')
 
 
+
 class CadastroVisitanteForm(forms.ModelForm):
     senha = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
         label="Senha",
-        required=False  # Tornar opcional para permitir a edição sem redefinir a senha
+        required=True
+    )
+    confirmar_senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label="Confirmar Senha",
+        required=True
     )
 
     class Meta:
@@ -42,6 +48,14 @@ class CadastroVisitanteForm(forms.ModelForm):
             'data_final': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date'}),
             'email': forms.EmailInput(attrs={'class': 'form-control w-100'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        senha = cleaned_data.get("senha")
+        confirmar_senha = cleaned_data.get("confirmar_senha")
+
+        if senha and confirmar_senha and senha != confirmar_senha:
+            self.add_error('confirmar_senha', "As senhas não coincidem.")
 
 
 

@@ -11,6 +11,26 @@
 
         {{ form.as_p }}  <!-- Exibe os campos do formulário de forma organizada -->
 
+        <!-- Campos de Senha e Confirmação de Senha exibidos apenas no modo de cadastro -->
+        {% if not visitante %}
+            <div class="form-group">
+                {{ form.senha.label_tag }}
+                {{ form.senha }}
+                {% if form.senha.errors %}
+                    <div class="text-danger">{{ form.senha.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.confirmar_senha.label_tag }}
+                {{ form.confirmar_senha }}
+                {% if form.confirmar_senha.errors %}
+                    <div class="text-danger">{{ form.confirmar_senha.errors }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Cursos com Acesso (somente para edição) -->
         {% if visitante %}
             <h3 class="mt-4">Cursos com Acesso</h3>
             {{ curso_form.cursos_acesso.label }}
@@ -23,10 +43,10 @@
         {% endif %}
 
         <div class="text-center mt-4">
-            <!-- Botão para Salvar Alterações sem alterar a senha -->
-            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            <!-- Botão para Salvar Alterações -->
+            <button type="submit" class="btn btn-primary">{% if visitante %}Salvar Alterações{% else %}Cadastrar{% endif %}</button>
 
-            <!-- Botão para abrir o modal de alteração de senha -->
+            <!-- Botão para abrir o modal de alteração de senha no modo de edição -->
             {% if visitante %}
                 <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#alterarSenhaModal">
                     Alterar Senha
@@ -38,7 +58,7 @@
         </div>
     </form>
 
-    <!-- Modal de Alteração de Senha -->
+    <!-- Modal de Alteração de Senha (somente para edição) -->
     <div class="modal fade" id="alterarSenhaModal" tabindex="-1" aria-labelledby="alterarSenhaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">

@@ -88,6 +88,7 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
         form = CadastroVisitanteForm(request.POST or None, instance=visitante)
         #remove o campo de senha
         form.fields.pop('senha', None)
+        form.fields.pop('confirmar_senha', None)
         # Filtra os cursos disponíveis para o relator e marca os cursos que o visitante já tem
         cursos_disponiveis = Curso.objects.filter(Q(criador=request.user) | Q(privilegios=True))
         curso_form = AdicionarCursosForm(request.POST or None, instance=visitante)
