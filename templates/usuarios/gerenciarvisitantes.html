@@ -16,7 +16,7 @@
         <ul class="list-group">
             {% for visitante in visitantes %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                <span>{{ visitante.nome }} - {{ visitante.email }}</span>
+                <span>{{ visitante.nome }} - {{ visitante.instituicao }} - {{ visitante.email }}</span>
                 <div>
                     <a href="{% url 'cadastrar_ou_editar_visitante' visitante.id %}" class="btn btn-sm btn-secondary">Editar</a>
                     <button type="button" class="btn btn-sm btn-danger" onclick="confirmarExclusao('{{ visitante.nome }}', '{{ visitante.instituicao }}', {{ visitante.id }})">Excluir</button>

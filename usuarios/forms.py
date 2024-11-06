@@ -4,11 +4,20 @@ from cursos.models import Curso
 
 
 class UsuarioForm(forms.ModelForm):
-    senha = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label="Senha")
+    senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label="Senha",
+        required=True
+    )
+    confirmar_senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label="Confirmar Senha",
+        required=True
+    )
 
     class Meta:
         model = Usuario
-        fields = ['nome', 'email', 'telefone', 'titulacao', 'instituicao', 'senha']
+        fields = ['nome', 'email', 'telefone', 'titulacao', 'instituicao', 'senha', 'confirmar_senha']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
@@ -23,6 +32,24 @@ class UsuarioForm(forms.ModelForm):
             self.fields.pop('titulacao')
         else:
             self.fields.pop('instituicao')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        senha = cleaned_data.get("senha")
+        confirmar_senha = cleaned_data.get("confirmar_senha")
+
+        if senha and confirmar_senha and senha != confirmar_senha:
+            self.add_error('confirmar_senha', "As senhas não coincidem.")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        usuario.tipo = Usuario.RELATOR  # Define o tipo de usuário como relator por padrão
+        if commit:
+            usuario.set_password(self.cleaned_data['senha'])
+            usuario.save()
+        return usuario
 
 
 

@@ -147,28 +147,7 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
     })
 
 
-@login_required
-def adicionar_curso_visitante(request, visitante_id):
-    visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
 
-    if request.method == "POST":
-        data = json.loads(request.body)
-        curso_id = data.get('curso_id')
-        curso = get_object_or_404(Curso, id=curso_id)
-
-        # Adiciona o curso ao visitante
-        visitante.cursos_acesso.add(curso)
-
-        # Registra a ação de adição de curso ao visitante no log
-        registrar_acao_log(
-            usuario=request.user,
-            curso=curso,
-            acao=f"Curso '{curso.nome}' adicionado ao visitante {visitante.nome}"
-        )
-
-        return JsonResponse({'status': 'Curso adicionado com sucesso!', 'curso_nome': curso.nome})
-
-    return JsonResponse({'status': 'Método inválido'}, status=400)
 
 
 @login_required

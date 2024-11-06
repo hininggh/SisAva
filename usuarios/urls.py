@@ -14,7 +14,6 @@ urlpatterns = [
     path('gerenciarvisitantes/', views.gerenciarvisitantes, name='gerenciarvisitantes'),
     path('excluir_visitante/<int:visitante_id>/', views.excluir_visitante, name='excluir_visitante'),
     path('perfil/', views.perfil_view, name='perfil'),
-    path('adicionar_curso_visitante/<int:visitante_id>/', views.adicionar_curso_visitante, name='adicionar_curso_visitante'),
     path('gerenciarvisitantes/', views.gerenciarvisitantes, name='gerenciarvisitantes'),
 
 ]
