@@ -55,7 +55,7 @@ def criar_ou_editar_curso(request, curso_id=None):
     else:
         form = CursoForm(instance=curso)
 
-    usuarios_disponiveis = Usuario.objects.filter(tipo=Usuario.RELATOR)
+    usuarios_disponiveis = Usuario.objects.filter(tipo=Usuario.RELATOR).exclude(id__in=curso.relatores.values_list('id', flat=True)) if curso else Usuario.objects.filter(tipo=Usuario.RELATOR)
     relatores = curso.relatores.all() if curso else []
 
     # Retorna JSON com lista de relatores em requisições AJAX
