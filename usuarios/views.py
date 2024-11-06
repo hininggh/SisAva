@@ -77,42 +77,53 @@ def cadastro_view(request):
 # Cadastro de Visitante (apenas relatores podem acessar)
 @login_required
 def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
-    # Verifica se o usuário atual é um relator e está autenticado
     if not request.user.is_authenticated or request.user.tipo != Usuario.RELATOR:
         messages.error(request, "Você não tem permissão para acessar esta página.")
-        return redirect('home')  # Redireciona para a página inicial ou outra página de acesso restrito
-
+        return redirect('home')
     visitante = None
+
     if visitante_id:
-        # Edição de visitante existente
+        # Código para edição, incluindo a definição de `curso_form`
         visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
         form = CadastroVisitanteForm(request.POST or None, instance=visitante)
+        #remove o campo de senha
+        form.fields.pop('senha', None)
+        # Filtra os cursos disponíveis para o relator e marca os cursos que o visitante já tem
+        cursos_disponiveis = Curso.objects.filter(Q(criador=request.user) | Q(privilegios=True))
         curso_form = AdicionarCursosForm(request.POST or None, instance=visitante)
+        curso_form.fields['cursos_acesso'].queryset = cursos_disponiveis
+        curso_form.initial['cursos_acesso'] = visitante.cursos_acesso.all()
     else:
-        # Cadastro de novo visitante
+        # Código para criação
         form = CadastroVisitanteForm(request.POST or None)
-        curso_form = AdicionarCursosForm(request.POST or None)
+        curso_form = None  # Não inicializa `curso_form` no modo de criação
+        if request.method == 'POST':
+            if form.is_valid():
+                visitante = form.save(commit=False)
+                visitante.tipo = Usuario.VISITANTE
+                visitante.set_password(form.cleaned_data['senha'])
+                visitante.save()
+                if curso_id:
+                    return redirect('cadastrar_ou_editar_visitante', curso_id=curso_id)
+                else:
+                    return redirect('cadastrar_ou_editar_visitante', visitante_id=visitante.id)
 
     if request.method == 'POST':
         if form.is_valid() and curso_form.is_valid():
             visitante = form.save(commit=False)
             visitante.tipo = Usuario.VISITANTE
-            visitante.set_password(form.cleaned_data['senha'])  # Define a senha para o visitante
+            if 'senha' in form.cleaned_data and form.cleaned_data['senha']:
+                visitante.set_password(form.cleaned_data['senha'])
             visitante.save()
 
-            # Salva os cursos associados, limitando àqueles que o relator pode gerenciar
-            cursos_disponiveis = Curso.objects.filter(
-                Q(criador=request.user) | Q(privilegios=True)
-            )
+            cursos_disponiveis = Curso.objects.filter(Q(criador=request.user) | Q(privilegios=True))
             visitante.cursos_acesso.set(curso_form.cleaned_data['cursos_acesso'].intersection(cursos_disponiveis))
 
             messages.success(request, "Visitante salvo com sucesso.")
-            # Redireciona para a página adequada, dependendo do contexto
             if curso_id:
                 return redirect('editar_curso', curso_id=curso_id)
             else:
                 return redirect('gerenciarvisitantes')
-
         else:
             messages.error(request, "Por favor, corrija os erros abaixo.")
 
@@ -121,6 +132,7 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
         'curso_form': curso_form,
         'visitante': visitante,
     })
+
 
 @login_required
 def adicionar_curso_visitante(request, visitante_id):

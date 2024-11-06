@@ -1,80 +1,74 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
+
+{% block title %}Cadastro de Visitante{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h2>{% if visitante %}Editar Visitante{% else %}Cadastrar Novo Visitante{% endif %}</h2>
+<div class="container mt-4">
+    <h2 class="text-center">{% if visitante %}Editar Visitante{% else %}Cadastrar Visitante{% endif %}</h2>
 
     <form method="post">
         {% csrf_token %}
 
-        <!-- Formulário principal para dados do visitante -->
-        <div class="form-group">
-            {{ form.nome.label_tag }}
-            {{ form.nome }}
-            {% if form.nome.errors %}
-                <div class="text-danger">{{ form.nome.errors }}</div>
-            {% endif %}
-        </div>
+        {{ form.as_p }}  <!-- Exibe os campos do formulário de forma organizada -->
 
-        <div class="form-group">
-            {{ form.email.label_tag }}
-            {{ form.email }}
-            {% if form.email.errors %}
-                <div class="text-danger">{{ form.email.errors }}</div>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            {{ form.instituicao.label_tag }}
-            {{ form.instituicao }}
-            {% if form.instituicao.errors %}
-                <div class="text-danger">{{ form.instituicao.errors }}</div>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            {{ form.senha.label_tag }}
-            {{ form.senha }}
-            {% if form.senha.errors %}
-                <div class="text-danger">{{ form.senha.errors }}</div>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            {{ form.data_inicial.label_tag }}
-            {{ form.data_inicial }}
-            {% if form.data_inicial.errors %}
-                <div class="text-danger">{{ form.data_inicial.errors }}</div>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            {{ form.data_final.label_tag }}
-            {{ form.data_final }}
-            {% if form.data_final.errors %}
-                <div class="text-danger">{{ form.data_final.errors }}</div>
-            {% endif %}
-        </div>
-
-        <!-- Formulário para associar cursos ao visitante -->
-        <h3 class="mt-4">Cursos com Acesso</h3>
-        <div class="form-group">
-            {{ curso_form.cursos_acesso.label_tag }}
+        {% if visitante %}
+            <h3 class="mt-4">Cursos com Acesso</h3>
+            {{ curso_form.cursos_acesso.label }}
             <div class="form-check">
-                {% for curso in curso_form.cursos_acesso %}
-                    <label class="form-check-label">
-                        {{ curso.tag }} {{ curso.choice_label }}
-                    </label>
-                {% endfor %}
+                {{ curso_form.cursos_acesso }}
             </div>
             {% if curso_form.cursos_acesso.errors %}
                 <div class="text-danger">{{ curso_form.cursos_acesso.errors }}</div>
             {% endif %}
-        </div>
+        {% endif %}
 
-        <!-- Botões de ação -->
-        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-        <a href="{% if curso_id %}{% url 'editar_curso' curso_id=curso_id %}{% else %}{% url 'gerenciarvisitantes' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
+        <div class="text-center mt-4">
+            <!-- Botão para Salvar Alterações sem alterar a senha -->
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+
+            <!-- Botão para abrir o modal de alteração de senha -->
+            {% if visitante %}
+                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#alterarSenhaModal">
+                    Alterar Senha
+                </button>
+            {% endif %}
+
+            <!-- Botão para Cancelar com redirecionamento condicional -->
+            <a href="{% if curso_id %}{% url 'editar_curso' curso_id=curso_id %}{% else %}{% url 'gerenciarvisitantes' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
+        </div>
     </form>
+
+    <!-- Modal de Alteração de Senha -->
+    <div class="modal fade" id="alterarSenhaModal" tabindex="-1" aria-labelledby="alterarSenhaModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alterarSenhaModalLabel">Alterar Senha</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="novaSenha">Nova Senha</label>
+                        <input type="password" name="senha" id="novaSenha" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmarSenha">Confirmar Nova Senha</label>
+                        <input type="password" name="confirmar_senha" id="confirmarSenha" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <!-- Botão para submeter o formulário com os dados do modal -->
+                    <button type="button" class="btn btn-primary" onclick="document.querySelector('form').submit();">Salvar Nova Senha e Alterações</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+document.getElementById('alterarSenhaModal').addEventListener('shown.bs.modal', function () {
+    document.getElementById('novaSenha').focus();
+});
+</script>
 {% endblock %}

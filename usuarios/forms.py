@@ -26,11 +26,15 @@ class UsuarioForm(forms.ModelForm):
 
 
 class CadastroVisitanteForm(forms.ModelForm):
-    senha = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label="Senha")
+    senha = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        label="Senha",
+        required=False  # Tornar opcional para permitir a edição sem redefinir a senha
+    )
 
     class Meta:
         model = Usuario
-        fields = ['nome', 'instituicao', 'data_inicial', 'data_final', 'email', 'senha']
+        fields = ['nome', 'instituicao', 'data_inicial', 'data_final', 'email']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control w-100'}),
             'instituicao': forms.TextInput(attrs={'class': 'form-control w-100'}),
@@ -40,13 +44,15 @@ class CadastroVisitanteForm(forms.ModelForm):
         }
 
 
+
 class AdicionarCursosForm(forms.ModelForm):
     cursos_acesso = forms.ModelMultipleChoiceField(
-        queryset=Curso.objects.all(),  # Filtre conforme necessário
+        queryset=Curso.objects.none(),  # Será configurado na view
         widget=forms.CheckboxSelectMultiple,
-        required=False
+        required=False,
+        label="Cursos com Acesso"
     )
 
     class Meta:
-        model = Curso
+        model = Usuario
         fields = ['cursos_acesso']
