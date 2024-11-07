@@ -210,8 +210,7 @@ def visualizar_curso_visitante(request, curso_id):
             indicadores_por_dimensao[dimensao]['indicadores_man'].extend(
                 [indicador for indicador in indicadores_man if indicador.indicador_info == indicador_info]
             )
-        print("Indicadores:", indicadores_man)
-        print("Agrupamento por dimensão:", indicadores_por_dimensao)
+
         context = {
             'curso': curso,
             'indicadores_por_dimensao': indicadores_por_dimensao,
