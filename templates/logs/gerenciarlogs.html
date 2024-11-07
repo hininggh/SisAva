@@ -1,25 +1,53 @@
-<h2>Logs para o curso: {{ curso.nome }}</h2>
+{% extends 'base.html' %}
 
-<table>
-    <thead>
-        <tr>
-            <th>Data e Hora</th>
-            <th>Ação</th>
-            <th>Descrição</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for log in logs %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Gerenciar Logs</h2>
+
+    <!-- Filtros -->
+    <div class="filters mb-4">
+        <form method="get" class="d-flex gap-2">
+            <button type="submit" name="filtro_nsa" value="true" class="btn btn-primary">Filtrar por NSA</button>
+            <button type="submit" name="filtro_conceito" value="true" class="btn btn-secondary">Filtrar por Conceito</button>
+            <button type="submit" name="filtro_relatorio" value="true" class="btn btn-success">Filtrar por Relatório</button>
+        </form>
+    </div>
+
+    <!-- Tabela de Logs -->
+    <table class="table table-bordered">
+        <thead>
             <tr>
-                <td>{{ log.dataHora }}</td>
-                <td>{{ log.acao }}</td>
-                <td>{{ log.descricaoDetalhada }}</td>
+                <th>Data/Hora</th>
+                <th>Usuário</th>
+                <th>Ação</th>
+                <th>Descrição Detalhada</th>
+                <th>Indicador ID</th>
             </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+                <tr>
+                    <td>{{ log.dataHora }}</td>
+                    <td>{{ log.usuarioID }}</td>
+                    <td>{{ log.ação }}</td>
+                    <td>{{ log.descriçãoDetalhada }}</td>
+                    <td>{{ log.indicadorID }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">Nenhum log encontrado.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-<!-- Links para filtrar os logs -->
-<a href="{% url 'filtrar_por_nsa' curso.id %}">Filtrar por NSA</a> |
-<a href="{% url 'filtrar_por_conceito' curso.id %}">Filtrar por Conceito</a> |
-<a href="{% url 'filtrar_por_relatorio' curso.id %}">Filtrar por Relatório</a>
+<script>
+    // Redireciona para a página de logs do curso selecionado
+    function redirectToCourseLogs(select) {
+        if (select.value) {
+            window.location.href = select.value;
+        }
+    }
+</script>
+{% endblock %}
