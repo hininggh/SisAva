@@ -20,19 +20,33 @@ def is_relator(user):
 # Página de Perfil (Edição para Relator, Visualização para Visitante)
 @login_required
 def perfil_view(request):
-    if is_relator(request.user):
-        # Se for relator, permite a edição do perfil
+    if request.user.tipo == 'relator':  # Verifica se o usuário é um relator
         if request.method == 'POST':
             form = UsuarioForm(request.POST, instance=request.user)
+            senha = request.POST.get('senha')
+            confirmar_senha = request.POST.get('confirmar_senha')
+            print(form.errors)
+            print('ppassou')# Adicione esta linha para imprimir os erros do formulário
             if form.is_valid():
-                form.save()
+                usuario = form.save(commit=False)
+
+                # Verificar se as senhas foram fornecidas e são iguais
+                if senha and confirmar_senha:
+                    if senha == confirmar_senha:
+                        usuario.set_password(senha)
+                    else:
+                        form.add_error('confirmar_senha', "As senhas não coincidem.")
+                        return render(request, 'usuarios/perfil.html', {'form': form, 'is_relator': True})
+
+                usuario.save()
                 return redirect('perfil')
         else:
             form = UsuarioForm(instance=request.user)
+
         return render(request, 'usuarios/perfil.html', {'form': form, 'is_relator': True})
-    else:
-        # Se for visitante, apenas visualiza o perfil
+    else:  # Se o usuário for um visitante
         return render(request, 'usuarios/perfil.html', {'usuario': request.user, 'is_relator': False})
+
 
 
 # Verifica se o usuário é um relator
@@ -61,8 +75,10 @@ def cadastro_view(request):
         form = UsuarioForm(request.POST)
         if form.is_valid():
             usuario = form.save(commit=False)
+            usuario.tipo = Usuario.RELATOR  # Define o tipo de usuário como relator
             usuario.set_password(form.cleaned_data['senha'])
             usuario.save()
+
             # Autenticar e logar automaticamente após o cadastro
             novo_usuario = authenticate(request, email=usuario.email, password=form.cleaned_data['senha'])
             if novo_usuario:
@@ -70,6 +86,7 @@ def cadastro_view(request):
                 return redirect('home')  # Redireciona para a view de home principal
     else:
         form = UsuarioForm()
+
     return render(request, 'usuarios/cadastro.html', {'form': form})
 
 
