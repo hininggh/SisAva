@@ -11,7 +11,14 @@
 {% if indicador_man.NSA %}
     <p>-NSA-</p>
 {% endif %}
-<p>{{ indicador_man.indicador_info.mensagem_aviso }}</p>
+
+<!-- Exibe o aviso com o conceito apenas se o conceito estiver presente -->
+<p>
+    {{ indicador_man.indicador_info.mensagem_aviso }}
+    {% if indicador_man.nivel_suposto %}
+        <strong>Conceito:</strong> {{ indicador_man.nivel_suposto }}
+    {% endif %}
+</p>
 
 <!-- Exibir Relatório -->
 <div style="margin-top: 20px;">
