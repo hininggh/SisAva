@@ -9,6 +9,7 @@ from logs.views import registrar_acao_log  # Função para registrar logs
 from .forms import NivelSupostoForm, NSAForm, RelatorioForm
 import os  # Biblioteca para manipular arquivos temporários
 import tempfile
+from django.contrib import messages
 from usuarios.models import Usuario  # Modelo de Usuario
 
 
@@ -18,7 +19,8 @@ from usuarios.models import Usuario  # Modelo de Usuario
 @login_required
 def visualizar_indicador(request, curso_id, indicador_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    indicador_man = get_object_or_404(IndicadorMan, curso=curso, indicador_info_id=indicador_id)
+    # Buscar o IndicadorMan com o ID fornecido
+    indicador_man = get_object_or_404(IndicadorMan, curso=curso, id=indicador_id)
 
     # Formulário para NSA
     nsa_form = NSAForm(request.POST or None, instance=indicador_man)
@@ -34,14 +36,18 @@ def visualizar_indicador(request, curso_id, indicador_id):
     has_relatorio = indicador_man.conteudo is not None
     nivel_suposto_vazio = indicador_man.nivel_suposto is None
 
+    # Adicionar as informações do IndicadorInfo associadas
+    indicador_info = indicador_man.indicador_info
+
     context = {
         'curso': curso,
         'indicador_man': indicador_man,
         'nsa_form': nsa_form,
         'nivel_suposto_form': nivel_suposto_form,
         'relatorio_form': relatorio_form,
-        'tabela_conceitos': indicador_man.indicador_info.tabela_conceitos,
-        'mensagem_aviso': indicador_man.indicador_info.mensagem_aviso,
+        'tabela_conceitos': indicador_info.tabela_conceitos,
+        'mensagem_aviso': indicador_info.mensagem_aviso,
+        'tabela_nome': indicador_info.nome,
         'has_relatorio': has_relatorio,
         'nivel_suposto_vazio': nivel_suposto_vazio,
     }
@@ -186,19 +192,18 @@ def remover_nsa(request, curso_id, indicador_id):
     return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
 
 
+
 @login_required
 def aplicar_nivel_suposto(request, curso_id, indicador_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    indicador_man = get_object_or_404(IndicadorMan, curso=curso, indicador_info_id=indicador_id)
+    indicador_man = get_object_or_404(IndicadorMan, curso=curso, id=indicador_id)  # Certifique-se de usar 'id=indicador_id'
 
     if request.method == 'POST':
-        form = NivelSupostoForm(request.POST, instance=indicador_man)
-        if form.is_valid():
-            form.save()
+        nivel_suposto_form = NivelSupostoForm(request.POST, instance=indicador_man)
+        if nivel_suposto_form.is_valid():
+            nivel_suposto_form.save()
+            messages.success(request, "Nível Suposto atualizado com sucesso.")
+        else:
+            messages.error(request, "Erro ao atualizar o Nível Suposto.")
 
-            # Registrar no log
-            acao = f"Nível Suposto atualizado para {indicador_man.nivel_suposto}"
-            registrar_acao_log(request.user, curso, acao, indicador_man)
-
-    # Redirecionar para a página de visualização do indicador
-    return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador_man.indicador_info.id)
+    return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador_man.id)

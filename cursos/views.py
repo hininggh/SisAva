@@ -153,12 +153,19 @@ def visualizar_curso(request, curso_id):
         # Obter os indicadores associados ao curso agrupados por dimensão
         indicadores_por_dimensao = {}
         indicadores_man = IndicadorMan.objects.filter(curso=curso).select_related('indicador_info')
+        indicadores_info = {indicador.indicador_info for indicador in indicadores_man}  # Coletar todos os IndicadorInfo relacionados
 
-        for indicador in indicadores_man:
-            dimensao = indicador.indicador_info.dimensao
+        for indicador_info in indicadores_info:
+            dimensao = indicador_info.dimensao
             if dimensao not in indicadores_por_dimensao:
-                indicadores_por_dimensao[dimensao] = []
-            indicadores_por_dimensao[dimensao].append(indicador)
+                indicadores_por_dimensao[dimensao] = {
+                    'indicador_info': indicador_info,
+                    'indicadores_man': []
+                }
+            # Adiciona os IndicadorMan correspondentes
+            indicadores_por_dimensao[dimensao]['indicadores_man'].extend(
+                [indicador for indicador in indicadores_man if indicador.indicador_info == indicador_info]
+            )
 
         # Obter as mensagens do mural relacionadas ao curso
         mensagens = Mural.objects.filter(curso=curso).order_by('-id')
@@ -171,7 +178,7 @@ def visualizar_curso(request, curso_id):
             'privilegios': curso.privilegios,  # Passa a condição de privilégios ao template
             'form_mural': form_mural,
             'usuario_autorizado': (curso.privilegios and request.user in curso.relatores.all()) or (
-                        not curso.privilegios and request.user == curso.criador)
+                not curso.privilegios and request.user == curso.criador)
         }
 
         return render(request, 'cursos/detalhescursorelator.html', context)
@@ -188,7 +195,7 @@ def enviar_ou_substituir_capa(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
 
     # Verificar permissões de acordo com privilégios e relação com o criador
-    if not ((request.user == curso.criador) or (curso.privilegios and request.user in curso.relatores.all())):
+    if (request.user == curso.criador) or (curso.privilegios and request.user in curso.relatores.all()):
         if request.method == 'POST' and request.FILES.get('capa'):
             # Verifica se já existe uma capa
             capa_existente = curso.capa is not None
@@ -198,6 +205,9 @@ def enviar_ou_substituir_capa(request, curso_id):
             # Registrar a ação de acordo com a existência anterior da capa
             acao = "Capa Substituída" if capa_existente else "Capa Enviada"
             registrar_acao_log(request.user, curso, acao)
+
+            # Adicionar mensagem de sucesso
+            messages.success(request, f"{acao} com sucesso.")
 
             # Redirecionar para a página de visualização do curso após o upload
             return redirect('visualizar_curso', curso_id=curso.id)
@@ -226,7 +236,7 @@ def baixar_capa(request, curso_id):
 @login_required
 def deletar_capa(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    if not ((request.user == curso.criador) or (curso.privilegios and request.user in curso.relatores.all())):
+    if (request.user == curso.criador) or (curso.privilegios and request.user in curso.relatores.all()):
         if curso.capa:
             curso.capa.delete()
             curso.save()

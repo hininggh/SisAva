@@ -32,8 +32,17 @@ def atualizar_mural(request, curso_id):
 @login_required
 @require_POST
 def postar_mensagem(request, curso_id):
-    curso = get_object_or_404(Curso, id=curso_id)  # Use Curso diretamente, sem aspas
-    form = MuralForm(request.POST)
+    curso = get_object_or_404(Curso, id=curso_id)  # Use Curso diretamente
+
+    # Verifique se o usuário é relator associado ao curso
+    if request.user not in curso.relatores.all():
+        return JsonResponse({'status': 'Erro: Você não tem permissão para postar no mural deste curso.'}, status=403)
+
+    # Tente buscar uma mensagem existente do relator para o curso
+    mensagem_existente = Mural.objects.filter(curso=curso, usuario=request.user).first()
+
+    # Se existir, inicialize o formulário com a mensagem existente; caso contrário, crie uma nova
+    form = MuralForm(request.POST, instance=mensagem_existente)
 
     if form.is_valid():
         mensagem = form.save(commit=False)
