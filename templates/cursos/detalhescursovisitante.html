@@ -24,7 +24,7 @@
                     {% for indicador in dados.indicadores_man %}
                         <li class="indicador-info">
                             <!-- Nome do Indicador -->
-                            <a href="{% url 'visualizar_indicador' curso.id indicador.id %}" title="{{ indicador.indicador_info.mensagem_aviso }}" style="flex-grow: 1;">
+                            <a href="{% url 'visualizar_indicador_visitante' curso.id indicador.id %}" title="{{ indicador.indicador_info.mensagem_aviso }}" style="flex-grow: 1;">
                                 {{ indicador.indicador_info.nome }}
                             </a>
 

@@ -13,5 +13,7 @@ urlpatterns = [
          name='aplicar_nivel_suposto'),
     path('<int:curso_id>/<int:indicador_id>/aplicar_nsa/', views.aplicar_nsa, name='aplicar_nsa'),
     path('<int:curso_id>/<int:indicador_id>/remover_nsa/', views.remover_nsa, name='remover_nsa'),
+    path('indicadores/visitante/<int:curso_id>/<int:indicador_id>/', views.visualizar_indicador_visitante,
+         name='visualizar_indicador_visitante'),
 ]
 
