@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Detalhes do Curso - Visitante{% endblock %}
 
 {% block content %}
@@ -12,23 +14,35 @@
         <a href="{% url 'gerar_relatorio_geral' curso.id %}" class="btn btn-secondary">Gerar Relatório Geral</a>
     </div>
 
-    <!-- Indicadores do Curso -->
+    <!-- Indicadores por Dimensão -->
     <div class="minimizable mt-4">
         <h3>Indicadores por Dimensão</h3>
         {% for dimensao, dados in indicadores_por_dimensao.items %}
             <div class="minimizable-content">
-                <h4>{{ dimensao }}</h4>
+                <h2 class="dimensao-header">{{ dimensao }}</h2>
                 <ul>
                     {% for indicador in dados.indicadores_man %}
                         <li class="indicador-info">
-                            <a href="{% url 'visualizar_indicador' curso.id indicador.id %}">
+                            <!-- Nome do Indicador -->
+                            <a href="{% url 'visualizar_indicador' curso.id indicador.id %}" title="{{ indicador.indicador_info.mensagem_aviso }}" style="flex-grow: 1;">
                                 {{ indicador.indicador_info.nome }}
                             </a>
-                            {% if indicador.conteudo %}
-                                <a href="{% url 'baixar_relatorio' curso.id indicador.id %}" class="btn btn-sm btn-primary">
-                                    Baixar Relatório
-                                </a>
-                            {% endif %}
+
+                            <!-- Conceito ou NSA e Ícones -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                {% if indicador.NSA %}
+                                    <span style="font-weight: bold; margin-right: 10px;">- NSA -</span>
+                                {% elif indicador.nivel_suposto %}
+                                    <span style="font-weight: bold; margin-right: 10px;">Conceito {{ indicador.nivel_suposto }}</span>
+                                {% endif %}
+
+                                <!-- Ícone de Baixar Relatório -->
+                                {% if indicador.conteudo %}
+                                    <a href="{% url 'baixar_relatorio' curso.id indicador.id %}">
+                                        <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
+                                    </a>
+                                {% endif %}
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
@@ -37,11 +51,61 @@
     </div>
 
     <!-- Informações Complementares -->
-    <div class="minimizable mt-4">
-        <h3>Informações Complementares</h3>
-        <div>
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>Informações Complementares</h3>
+        </div>
+        <div class="card-body">
             <p>{{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
         </div>
     </div>
 </div>
+
+<style>
+  .minimizable {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .minimizable h2 {
+    margin-top: 0;
+    cursor: pointer;
+  }
+  .minimizable-content {
+    margin-top: 10px;
+  }
+
+  .indicador-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    margin-bottom: 2px;
+    border-bottom: 1px solid #ccc;
+  }
+  .indicador-info:last-child {
+    border-bottom: none;
+  }
+
+  .btn-container {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+</style>
+
+<script>
+    // Função para alternar entre expandir e colapsar conteúdo
+    document.addEventListener("DOMContentLoaded", function() {
+        const headers = document.querySelectorAll('.dimensao-header');
+        headers.forEach(header => {
+            header.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                if (content) {
+                    content.style.display = content.style.display === "none" ? "block" : "none";
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
