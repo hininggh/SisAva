@@ -12,7 +12,7 @@
         <ul class="list-group">
             {% for curso in cursos_acesso %}
             <li class="list-group-item">
-                <a href="{% url 'detalhescursovisitante' curso.id %}">{{ curso.nome }}</a>
+                <a href="{% url 'visualizar_curso_visitante' curso.id %}">{{ curso.nome }}</a>
                 <span class="badge badge-info">Acesso até: {{ curso.data_final|date:"d/m/Y" }}</span>
             </li>
             {% endfor %}

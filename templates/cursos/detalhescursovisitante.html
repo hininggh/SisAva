@@ -1,50 +1,47 @@
 {% extends 'base.html' %}
-
-{% block title %}Detalhes do Indicador - Visitante{% endblock %}
+{% block title %}Detalhes do Curso - Visitante{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <!-- Botão Voltar ao Curso -->
-    <div style="margin-bottom: 20px;">
-        <a href="{% url 'visualizar_curso' curso.id %}" class="btn btn-secondary">Voltar ao Curso</a>
+    <h2>{{ curso.nome }}</h2>
+    <p><strong>Inscrição:</strong> {{ curso.inscricao }}</p>
+    <p><strong>Detalhes:</strong> {{ curso.detalhes }}</p>
+
+    <!-- Botão para Gerar Relatório Geral -->
+    <div class="btn-container mt-4">
+        <a href="{% url 'gerar_relatorio_geral' curso.id %}" class="btn btn-secondary">Gerar Relatório Geral</a>
     </div>
 
-    <!-- Nome e status do Indicador -->
-    <h1>{{ indicador.indicador_info.nome }}</h1>
-    {% if indicador.NSA %}
-        <p>-NSA-</p>
-    {% endif %}
-    <p>{{ indicador.indicador_info.mensagem_aviso }}</p>
-
-    <!-- Verificar se há um relatório disponível para download -->
-    <div style="margin-top: 20px;">
-        {% if indicador.conteudo %}
-            <p><strong>Relatório:</strong> {{ indicador.conteudo.name }}</p>
-            <p><strong>Data de Envio:</strong> {{ indicador.data_envio }}</p>
-            <p><strong>Usuário que enviou:</strong> {{ indicador.usuario_relatorio.nome }}</p>
-
-            <!-- Ícone de download apenas -->
-            <a href="{% url 'baixar_relatorio' curso.id indicador.indicador_info.id %}">
-                <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
-            </a>
-        {% else %}
-            <p><strong>Relatório:</strong> Não há relatório anexado.</p>
-        {% endif %}
-    </div>
-
-    <!-- Tabela de Conceitos -->
-    <h3>Tabela de Conceitos</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-        <tr>
-            <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2;">Conceito</th>
-            <th style="border: 1px solid #000; padding: 8px; background-color: #f2f2f2;">Critério de Análise</th>
-        </tr>
-        {% for conceito, criterio in tabela_conceitos.items %}
-            <tr>
-                <td style="border: 1px solid #000; padding: 8px; text-align: center;">{{ conceito }}</td>
-                <td style="border: 1px solid #000; padding: 8px;">{{ criterio }}</td>
-            </tr>
+    <!-- Indicadores do Curso -->
+    <div class="minimizable mt-4">
+        <h3>Indicadores por Dimensão</h3>
+        {% for dimensao, dados in indicadores_por_dimensao.items %}
+            <div class="minimizable-content">
+                <h4>{{ dimensao }}</h4>
+                <ul>
+                    {% for indicador in dados.indicadores_man %}
+                        <li class="indicador-info">
+                            <a href="{% url 'visualizar_indicador' curso.id indicador.id %}">
+                                {{ indicador.indicador_info.nome }}
+                            </a>
+                            {% if indicador.conteudo %}
+                                <a href="{% url 'baixar_relatorio' curso.id indicador.id %}" class="btn btn-sm btn-primary">
+                                    Baixar Relatório
+                                </a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
         {% endfor %}
-    </table>
+    </div>
+
+    <!-- Informações Complementares -->
+    <div class="minimizable mt-4">
+        <h3>Informações Complementares</h3>
+        <div>
+            <p>{{ curso.informacoes_complementares|default:"Sem informações complementares" }}</p>
+        </div>
+    </div>
 </div>
 {% endblock %}

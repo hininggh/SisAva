@@ -186,6 +186,42 @@ def visualizar_curso(request, curso_id):
         return render(request, 'cursos/detalhescursovisitante.html', {'curso': curso})
 
 
+#---------visualizarcurso visitante
+
+def visualizar_curso_visitante(request, curso_id):
+    curso = get_object_or_404(Curso, id=curso_id)
+    print('passou0')
+    # Verificar se o usuário visitante tem acesso ao curso
+    if request.user.tipo == Usuario.VISITANTE and curso in request.user.cursos_acesso.all():
+        # Obter os indicadores associados ao curso agrupados por dimensão
+        print('passou1')
+        indicadores_por_dimensao = {}
+        indicadores_man = IndicadorMan.objects.filter(curso=curso).select_related('indicador_info')
+        indicadores_info = {indicador.indicador_info for indicador in indicadores_man}
+        print('passou2')
+        for indicador_info in indicadores_info:
+            dimensao = indicador_info.dimensao
+            if dimensao not in indicadores_por_dimensao:
+                indicadores_por_dimensao[dimensao] = {
+                    'indicador_info': indicador_info,
+                    'indicadores_man': []
+                }
+            # Adiciona os IndicadorMan correspondentes
+            indicadores_por_dimensao[dimensao]['indicadores_man'].extend(
+                [indicador for indicador in indicadores_man if indicador.indicador_info == indicador_info]
+            )
+        print("Indicadores:", indicadores_man)
+        print("Agrupamento por dimensão:", indicadores_por_dimensao)
+        context = {
+            'curso': curso,
+            'indicadores_por_dimensao': indicadores_por_dimensao,
+        }
+
+        return render(request, 'cursos/detalhescursovisitante.html', context)
+
+    else:
+        # Redireciona ou mostra uma página de erro se o visitante não tiver acesso ao curso
+        return render(request, 'cursos/acesso_negado.html', {'curso': curso})
 
 #-----------------------views capa
 
