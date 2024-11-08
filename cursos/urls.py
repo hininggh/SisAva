@@ -16,6 +16,12 @@ urlpatterns = [
     path('gerar_relatorio/<int:curso_id>/', views.gerar_relatorio_geral, name='gerar_relatorio_geral'),  # Gerar relatório geral
     path('atualizar_lista_relatores/<int:curso_id>/', views.atualizar_lista_relatores, name='atualizar_lista_relatores'),
     path('excluir_relator/<int:curso_id>/<int:relator_id>/', views.excluir_relator, name='excluir_relator'),
+    path('cursos/<int:curso_id>/visitantes/atualizar/', views.atualizar_lista_visitantes,
+         name='atualizar_lista_visitantes'),
+    path('cursos/<int:curso_id>/visitantes/adicionar/', views.adicionar_visitante_curso,
+         name='adicionar_visitante_curso'),
+    path('cursos/<int:curso_id>/visitantes/excluir/<int:visitante_id>/', views.excluir_visitante_curso,
+         name='excluir_visitante_curso'),
 ]
 
 

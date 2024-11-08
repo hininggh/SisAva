@@ -58,18 +58,28 @@ def criar_ou_editar_curso(request, curso_id=None):
     else:
         form = CursoForm(instance=curso)
 
-    usuarios_disponiveis = Usuario.objects.filter(tipo=Usuario.RELATOR).exclude(id__in=curso.relatores.values_list('id', flat=True)) if curso else Usuario.objects.filter(tipo=Usuario.RELATOR)
+    visitantes_disponiveis = Usuario.objects.filter(tipo=Usuario.VISITANTE).exclude(
+        cursos_acesso=curso) if curso else Usuario.objects.filter(tipo=Usuario.VISITANTE)
+    visitantes = Usuario.objects.filter(tipo=Usuario.VISITANTE, cursos_acesso=curso) if curso else []
+
+    # Mantendo os relatores e usuários disponíveis da forma original
+    usuarios_disponiveis = Usuario.objects.filter(tipo=Usuario.RELATOR).exclude(
+        id__in=curso.relatores.values_list('id', flat=True)) if curso else Usuario.objects.filter(tipo=Usuario.RELATOR)
     relatores = curso.relatores.all() if curso else []
+
     # Retorna JSON com lista de relatores em requisições AJAX
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         relatores = curso.relatores.values_list('nome', flat=True) if curso else []
         return JsonResponse({'relatores': list(relatores)})
 
+    # Adicione visitantes_com_acesso e visitantes_disponiveis ao contexto do template
     return render(request, 'cursos/criarcurso.html', {
         'form': form,
         'curso': curso,
         'relatores': relatores,
-        'usuarios_disponiveis': usuarios_disponiveis
+        'usuarios_disponiveis': usuarios_disponiveis,
+        'visitantes_disponiveis': visitantes_disponiveis,
+        'visitantes': visitantes
     })
 
 @login_required
@@ -108,7 +118,7 @@ def atualizar_lista_relatores(request, curso_id):
 
 
 
-from django.http import JsonResponse
+
 
 
 @login_required
@@ -140,7 +150,53 @@ def excluir_relator(request, curso_id, relator_id):
     curso.relatores.remove(relator)
     return JsonResponse({'success': True})
 
+#----------------------------------------
 
+@login_required
+def atualizar_lista_visitantes(request, curso_id):
+    curso = get_object_or_404(Curso, id=curso_id)
+    # Visitantes que têm acesso a este curso
+    visitantes_adicionados = Usuario.objects.filter(cursos_acesso=curso, tipo=Usuario.VISITANTE)
+
+    # Visitantes disponíveis que ainda não têm acesso a este curso
+    visitantes_disponiveis = Usuario.objects.filter(tipo=Usuario.VISITANTE).exclude(cursos_acesso=curso)
+
+    # Estrutura do JSON para nome e id
+    data = {
+        "visitante": [{"id": visitante.id, "nome": visitante.nome} for visitante in visitantes_adicionados],
+        "visitanteDisponiveis": [{"id": visitante.id, "nome": visitante.nome} for visitante in visitantes_disponiveis]
+    }
+
+    return JsonResponse(data)
+
+@login_required
+def adicionar_visitante_curso(request, curso_id):
+    curso = get_object_or_404(Curso, id=curso_id)
+    visitante_id = request.POST.get('visitante_id')
+    visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
+
+    # Adiciona o curso à lista de cursos do visitante, se ainda não estiver presente
+    if curso not in visitante.cursos_acesso.all():
+        visitante.cursos_acesso.add(curso)
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False, 'error': 'O visitante já tem acesso a este curso.'})
+
+@login_required
+def excluir_visitante_curso(request, curso_id, visitante_id):
+    curso = get_object_or_404(Curso, id=curso_id)
+    visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
+
+    # Remove o curso da lista de cursos do visitante
+    if curso in visitante.cursos_acesso.all():
+        visitante.cursos_acesso.remove(curso)
+        return JsonResponse({'success': True})
+    else:
+        return JsonResponse({'success': False, 'error': 'O visitante não tinha acesso a este curso.'})
+
+
+
+#-------------------------------------------------
 # Visualizar Curso
 @login_required
 def visualizar_curso(request, curso_id):

@@ -54,6 +54,48 @@
     <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Visualizar Curso</button>
     <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-primary mt-4">Gerenciar Visitantes</a>
     <button class="btn btn-danger mt-4" onclick="excluirCurso()">Excluir Curso</button>
+
+    <hr>
+    <!-- Adição e exclusão de visitantes -->
+    <div class="row mt-4">
+        <!-- Coluna para adicionar visitante -->
+        <div class="col-md-6">
+            <h3>Adicionar Visitante</h3>
+            <form id="form-adicionar-visitante" onsubmit="adicionarVisitante(event)">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="visitante_id"></label>
+                    <select id="visitante_id" name="visitante_id" class="form-control">
+                        {% for visitante in visitantes_disponiveis %}
+                            <option value="{{ visitante.id }}">{{ visitante.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mt-2">Adicionar Visitante</button>
+            </form>
+        </div>
+
+        <!-- Coluna para listar visitantes -->
+        <div class="col-md-6">
+            <h3>Visitantes do Curso</h3>
+            <ul id="visitantes-list" class="list-group">
+                {% for visitante in visitantes %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'cadastrar_ou_editar_visitante' visitante.id curso.id %}">
+                            {{ visitante.nome }}
+                        </a>
+                        <button onclick="excluirVisitante({{ visitante.id }})" class="btn btn-danger btn-sm">Excluir</button>
+                    </li>
+                {% empty %}
+                    <p>Nenhum visitante adicionado.</p>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+
+
+
     {% endif %}
 </div>
 
@@ -112,44 +154,134 @@
         }
 
         // Função para atualizar a lista de relatores
-    function atualizarRelatores() {
-        fetch("{% url 'atualizar_lista_relatores' curso.id %}", {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Verifique se as listas existem antes de iterar sobre elas
-            const listaRelatoresAdicionados = document.getElementById('relatores-list');
-            if (listaRelatoresAdicionados) {
-                listaRelatoresAdicionados.innerHTML = '';
-                if (data.relator && Array.isArray(data.relator)) {
-                    data.relator.forEach(relator => {
-                        const item = document.createElement('li');
-                        item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
-                        item.innerHTML = `
-                            ${relator.nome}
-                            <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>
-                        `;
-                        listaRelatoresAdicionados.appendChild(item);
-                    });
+        function atualizarRelatores() {
+            fetch("{% url 'atualizar_lista_relatores' curso.id %}", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Verifique se as listas existem antes de iterar sobre elas
+                const listaRelatoresAdicionados = document.getElementById('relatores-list');
+                if (listaRelatoresAdicionados) {
+                    listaRelatoresAdicionados.innerHTML = '';
+                    if (data.relator && Array.isArray(data.relator)) {
+                        data.relator.forEach(relator => {
+                            const item = document.createElement('li');
+                            item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                            item.innerHTML = `
+                                ${relator.nome}
+                                <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>
+                            `;
+                            listaRelatoresAdicionados.appendChild(item);
+                        });
+                    }
                 }
-            }
 
-            const listaRelatoresDisponiveis = document.querySelector('select[name="relator_id"]');
-            if (listaRelatoresDisponiveis) {
-                listaRelatoresDisponiveis.innerHTML = '';
-                if (data.relatorDisponiveis && Array.isArray(data.relatorDisponiveis)) {
-                    data.relatorDisponiveis.forEach(relatorDisponivel => {
-                        const option = document.createElement('option');
-                        option.value = relatorDisponivel.id;
-                        option.textContent = relatorDisponivel.nome;
-                        listaRelatoresDisponiveis.appendChild(option);
-                    });
+                const listaRelatoresDisponiveis = document.querySelector('select[name="relator_id"]');
+                if (listaRelatoresDisponiveis) {
+                    listaRelatoresDisponiveis.innerHTML = '';
+                    if (data.relatorDisponiveis && Array.isArray(data.relatorDisponiveis)) {
+                        data.relatorDisponiveis.forEach(relatorDisponivel => {
+                            const option = document.createElement('option');
+                            option.value = relatorDisponivel.id;
+                            option.textContent = relatorDisponivel.nome;
+                            listaRelatoresDisponiveis.appendChild(option);
+                        });
+                    }
                 }
+            })
+            .catch(error => console.error("Erro ao atualizar as listas de relatores:", error));
+        }
+
+        // visitantes
+        // Função para excluir visitante
+        function excluirVisitante(visitanteId) {
+            if (confirm("Tem certeza que deseja excluir este visitante?")) {
+                fetch("{% url 'excluir_visitante_curso' curso.id 0 %}".replace('/0/', '/' + visitanteId + '/'), {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        atualizarVisitantes(); // Atualiza a lista após a exclusão
+                    } else {
+                        alert('Erro ao excluir o visitante.');
+                    }
+                });
             }
-        })
-        .catch(error => console.error("Erro ao atualizar as listas de relatores:", error));
-    }
+        }
+
+        // Função para adicionar visitante
+        function adicionarVisitante(event) {
+            event.preventDefault();
+            const visitanteId = document.querySelector('select[name="visitante_id"]').value;
+            fetch("{% url 'adicionar_visitante_curso' curso.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `visitante_id=${visitanteId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    atualizarVisitantes(); // Atualiza a lista após adicionar um visitante
+                } else {
+                    alert(data.error || 'Erro ao adicionar o visitante.');
+                }
+            })
+            .catch(error => console.error('Erro ao adicionar o visitante:', error));
+        }
+
+        // Função para atualizar a lista de visitantes
+        function atualizarVisitantes() {
+            fetch("{% url 'atualizar_lista_visitantes' curso.id %}", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Dados recebidos:", data);  // Adicione esta linha para depuração
+                const listaVisitantesAdicionados = document.getElementById('visitantes-list');
+                if (listaVisitantesAdicionados) {
+                    listaVisitantesAdicionados.innerHTML = '';
+                    if (data.visitante && Array.isArray(data.visitante)) {
+                        data.visitante.forEach(visitante => {
+                            const item = document.createElement('li');
+                            item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                            item.innerHTML = `
+                                ${visitante.nome}
+                                <button onclick="excluirVisitante(${visitante.id})" class="btn btn-danger btn-sm">Excluir</button>
+                            `;
+                            listaVisitantesAdicionados.appendChild(item);
+                        });
+                    }
+                }
+
+                const listaVisitantesDisponiveis = document.querySelector('select[name="visitante_id"]');
+                if (listaVisitantesDisponiveis) {
+                    listaVisitantesDisponiveis.innerHTML = '';
+                    if (data.visitanteDisponiveis && Array.isArray(data.visitanteDisponiveis)) {
+                        data.visitanteDisponiveis.forEach(visitanteDisponivel => {
+                            const option = document.createElement('option');
+                            option.value = visitanteDisponivel.id;
+                            option.textContent = visitanteDisponivel.nome;
+                            listaVisitantesDisponiveis.appendChild(option);
+                        });
+                    }
+                }
+            })
+            .catch(error => console.error("Erro ao atualizar as listas de visitantes:", error));
+        }
+
+
+        //
+
 
         // Função para finalizar o curso
         function finalizarCurso() {
