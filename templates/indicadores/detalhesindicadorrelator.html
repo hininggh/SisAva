@@ -14,9 +14,9 @@
 <p>{{ indicador_man.indicador_info.mensagem_aviso }}</p>
 
 <!-- Botão para Aplicar ou Remover NSA -->
-<!-- Formulário para Aplicar/Remover NSA -->
+
 <div style="display: inline-block; margin-right: 20px;">
-    <form method="post" action="{% if indicador_man.NSA %}{% url 'remover_nsa' curso.id indicador_man.id %}{% else %}{% url 'aplicar_nsa' curso.id indicador_man.id %}{% endif %}" class="inline-form" onsubmit="return confirmarAplicarNSA('{{ indicador_man.indicador_info.nome }}', {{ has_relatorio|yesno:'true,false' }}, {{ nivel_suposto_vazio|yesno:'false,true' }})">
+    <form method="post" action="{% if indicador_man.NSA %}{% url 'remover_nsa' curso.id indicador_man.id %}{% else %}{% url 'aplicar_nsa' curso.id indicador_man.id %}{% endif %}" class="inline-form" onsubmit="{% if not indicador_man.NSA %}return confirmarAplicarNSA('{{ indicador_man.indicador_info.nome }}', {{ has_relatorio|yesno:'true,false' }}, {{ nivel_suposto_vazio|yesno:'false,true' }}){% else %}return true{% endif %}">
         {% csrf_token %}
         <button type="submit" class="btn btn-primary">
             {% if indicador_man.NSA %}
@@ -103,6 +103,7 @@
         }
         return true;
     }
+
 
     // Confirmação para substituir relatório
     function confirmarSubstituirRelatorio() {
