@@ -1,10 +1,17 @@
 from django import forms
 from .models import Curso
 
+
 class CursoForm(forms.ModelForm):
+    privilegios = forms.BooleanField(
+        required=False,  # Torne o campo opcional
+        label="Privilégios",  # Rótulo que será exibido no formulário
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})  # Usa o widget de caixa de seleção
+    )
+
     class Meta:
         model = Curso
-        fields = ['nome', 'inscricao', 'detalhes', 'capa']  # Retirado 'informacoes_complementares'
+        fields = ['nome', 'inscricao', 'detalhes', 'capa', 'privilegios']  # Adicione 'privilegios' à lista de campos
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'inscricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),

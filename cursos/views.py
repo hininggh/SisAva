@@ -57,7 +57,6 @@ def criar_ou_editar_curso(request, curso_id=None):
 
     usuarios_disponiveis = Usuario.objects.filter(tipo=Usuario.RELATOR).exclude(id__in=curso.relatores.values_list('id', flat=True)) if curso else Usuario.objects.filter(tipo=Usuario.RELATOR)
     relatores = curso.relatores.all() if curso else []
-
     # Retorna JSON com lista de relatores em requisições AJAX
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         relatores = curso.relatores.values_list('nome', flat=True) if curso else []
@@ -109,17 +108,12 @@ def adicionar_relator(request, curso_id):
     # Verifica se é uma requisição AJAX
     print("iniciou")
     curso = get_object_or_404(Curso, id=curso_id)
-    print("passou0")
     relator_id = request.POST.get('relator_id')
-    print("passou1")
     relator = get_object_or_404(Usuario, id=relator_id)
-
     if relator not in curso.relatores.all():
         curso.relatores.add(relator)
-        print("passou2")
         return JsonResponse({'success': True})
     else:
-        print("passou3")
         return JsonResponse({'success': False, 'error': 'Relator já adicionado.'})
 
 # views.py
@@ -127,7 +121,6 @@ def adicionar_relator(request, curso_id):
 @login_required
 def excluir_relator(request, curso_id, relator_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    print("passou0")
     # Verifica se o usuário que está tentando excluir é o criador
     if request.user != curso.criador:
         return JsonResponse({'error': 'Apenas o criador do curso pode excluir relatores'}, status=403)
@@ -139,7 +132,6 @@ def excluir_relator(request, curso_id, relator_id):
 
     # Remove o relator dos relatores do curso
     curso.relatores.remove(relator)
-    print("passou2")
     return JsonResponse({'success': True})
 
 
@@ -190,7 +182,6 @@ def visualizar_curso(request, curso_id):
 
 def visualizar_curso_visitante(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    print('passou0')
     # Verificar se o usuário visitante tem acesso ao curso
     if request.user.tipo == Usuario.VISITANTE and curso in request.user.cursos_acesso.all():
         # Obter os indicadores associados ao curso agrupados por dimensão

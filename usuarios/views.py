@@ -171,6 +171,17 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
 def excluir_visitante(request, visitante_id):
     visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
 
+    # Verifique se o visitante tem algum curso em sua lista de acesso
+    cursos_acesso = visitante.cursos_acesso.all()
+    if cursos_acesso.exists():
+        # Itere por cada curso na lista de acesso do visitante
+        for curso in cursos_acesso:
+            # Verifique se o usuário logado não é o criador do curso ou não tem privilégios como relator
+            if curso.criador != request.user and (request.user not in curso.relatores.all() or not curso.privilegios):
+                # Se o usuário logado não tiver permissão, negue a exclusão
+                messages.error(request, "Você não tem permissão para excluir este visitante, pois ele está vinculado a cursos em que você não é o criador ou não tem privilégios como relator.")
+                return redirect('gerenciarvisitantes')
+
     if request.method == "GET":
         # Registra a ação de exclusão do visitante no log antes da exclusão
         registrar_acao_log(
@@ -183,6 +194,11 @@ def excluir_visitante(request, visitante_id):
         messages.success(request, f"O visitante {visitante.nome} foi excluído com sucesso.")
 
     return redirect('gerenciarvisitantes')
+
+
+
+
+
 
 
 @login_required
