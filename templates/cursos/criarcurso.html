@@ -16,40 +16,44 @@
 
     {% if curso %}
     <hr>
-    <h3>Relatores do Curso</h3>
-    <!-- Lista de relatores atualizada dinamicamente -->
-    <ul id="relatores-list">
-        {% for relator in relatores %}
-            <li>
-                {{ relator.nome }}
-                <button onclick="excluirRelator({{ relator.id }})" class="btn btn-danger btn-sm">Excluir</button>
-            </li>
-        {% empty %}
-            <p>Nenhum relator adicionado.</p>
-        {% endfor %}
-    </ul>
-
-    <!-- Formulário para adicionar relatores -->
-    <form id="form-adicionar-relator" onsubmit="adicionarRelator(event)">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="relator_id">Adicionar Relator</label> <!-- Atualizado para relator_id -->
-            <select id="relator_id" name="relator_id" class="form-control">
-                {% for usuario in usuarios_disponiveis %}
-                    <option value="{{ usuario.id }}">{{ usuario.nome }}</option>
-                {% endfor %}
-            </select>
+    <div class="row">
+        <!-- Coluna para adicionar relator -->
+        <div class="col-md-6">
+            <h3>Adicionar Relator</h3>
+            <form id="form-adicionar-relator" onsubmit="adicionarRelator(event)">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="relator_id">Relator Disponível</label>
+                    <select id="relator_id" name="relator_id" class="form-control">
+                        {% for usuario in usuarios_disponiveis %}
+                            <option value="{{ usuario.id }}">{{ usuario.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mt-2">Adicionar Relator</button>
+            </form>
         </div>
-        <button type="submit" class="btn btn-primary mt-2">Adicionar Relator</button>
-    </form>
 
-
-
-    <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Finalizar e Visualizar Curso</button>
+        <!-- Coluna para listar relatores -->
+        <div class="col-md-6">
+            <h3>Relatores do Curso</h3>
+            <ul id="relatores-list" class="list-group">
+                {% for relator in relatores %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ relator.nome }}
+                        <button onclick="excluirRelator({{ relator.id }})" class="btn btn-danger btn-sm">Excluir</button>
+                    </li>
+                {% empty %}
+                    <p>Nenhum relator adicionado.</p>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 
     <hr>
-    <h3>Excluir Curso</h3>
-    <button class="btn btn-danger mt-2" onclick="excluirCurso()">Excluir Curso</button>
+    <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Visualizar Curso</button>
+    <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-primary mt-4">Gerenciar Visitantes</a>
+    <button class="btn btn-danger mt-4" onclick="excluirCurso()">Excluir Curso</button>
     {% endif %}
 </div>
 
@@ -108,22 +112,44 @@
         }
 
         // Função para atualizar a lista de relatores
-        function atualizarRelatores() {
-            fetch("{% url 'atualizar_lista_relatores' curso.id %}", {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const listaRelatores = document.getElementById('relatores-list');
-                listaRelatores.innerHTML = '';
-                data.relator.forEach(relator => {
-                    const item = document.createElement('li');
-                    item.innerHTML = `${relator.nome} <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>`;
-                    listaRelatores.appendChild(item);
-                });
-            })
-            .catch(error => console.error("Erro ao atualizar a lista de relatores:", error));
-        }
+    function atualizarRelatores() {
+        fetch("{% url 'atualizar_lista_relatores' curso.id %}", {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Verifique se as listas existem antes de iterar sobre elas
+            const listaRelatoresAdicionados = document.getElementById('relatores-list');
+            if (listaRelatoresAdicionados) {
+                listaRelatoresAdicionados.innerHTML = '';
+                if (data.relator && Array.isArray(data.relator)) {
+                    data.relator.forEach(relator => {
+                        const item = document.createElement('li');
+                        item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                        item.innerHTML = `
+                            ${relator.nome}
+                            <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>
+                        `;
+                        listaRelatoresAdicionados.appendChild(item);
+                    });
+                }
+            }
+
+            const listaRelatoresDisponiveis = document.querySelector('select[name="relator_id"]');
+            if (listaRelatoresDisponiveis) {
+                listaRelatoresDisponiveis.innerHTML = '';
+                if (data.relatorDisponiveis && Array.isArray(data.relatorDisponiveis)) {
+                    data.relatorDisponiveis.forEach(relatorDisponivel => {
+                        const option = document.createElement('option');
+                        option.value = relatorDisponivel.id;
+                        option.textContent = relatorDisponivel.nome;
+                        listaRelatoresDisponiveis.appendChild(option);
+                    });
+                }
+            }
+        })
+        .catch(error => console.error("Erro ao atualizar as listas de relatores:", error));
+    }
 
         // Função para finalizar o curso
         function finalizarCurso() {

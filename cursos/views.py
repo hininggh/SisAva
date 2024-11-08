@@ -15,13 +15,16 @@ from reportlab.lib.pagesizes import A4
 from mural.forms import MuralForm
 from mural.models import Mural
 from reportlab.lib.units import cm
+from django.contrib.auth import get_user_model
 from .forms import CapaCursoForm
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 import os
-
-
 import logging
+
+Usuario = get_user_model()
+
+
 
 # Criar ou Editar Curso
 @login_required
@@ -90,12 +93,17 @@ def excluir_curso(request, curso_id):
 @login_required
 def atualizar_lista_relatores(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    relatores = curso.relatores.all()
+    relatores_adicionados = curso.relatores.all()
+
+    # Excluir os relatores que já estão no curso da lista de disponíveis
+    relatores_disponiveis = Usuario.objects.filter(tipo='relator').exclude(id__in=relatores_adicionados)
 
     # Estrutura do JSON para nome e id
     data = {
-        "relator": [{"id": relator.id, "nome": relator.nome} for relator in relatores]
+        "relator": [{"id": relator.id, "nome": relator.nome} for relator in relatores_adicionados],
+        "relatorDisponiveis": [{"id": relator.id, "nome": relator.nome} for relator in relatores_disponiveis]
     }
+
     return JsonResponse(data)
 
 
@@ -105,8 +113,6 @@ from django.http import JsonResponse
 
 @login_required
 def adicionar_relator(request, curso_id):
-    # Verifica se é uma requisição AJAX
-    print("iniciou")
     curso = get_object_or_404(Curso, id=curso_id)
     relator_id = request.POST.get('relator_id')
     relator = get_object_or_404(Usuario, id=relator_id)
