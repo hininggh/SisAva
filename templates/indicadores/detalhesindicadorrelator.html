@@ -16,7 +16,7 @@
 <!-- Botão para Aplicar ou Remover NSA -->
 
 <div style="display: inline-block; margin-right: 20px;">
-    <form method="post" action="{% if indicador_man.NSA %}{% url 'remover_nsa' curso.id indicador_man.id %}{% else %}{% url 'aplicar_nsa' curso.id indicador_man.id %}{% endif %}" class="inline-form" onsubmit="{% if not indicador_man.NSA %}return confirmarAplicarNSA('{{ indicador_man.indicador_info.nome }}', {{ has_relatorio|yesno:'true,false' }}, {{ nivel_suposto_vazio|yesno:'false,true' }}){% else %}return true{% endif %}">
+<form method="post" action="{% if indicador_man.NSA %}{% url 'remover_nsa' curso.id indicador_man.id %}{% else %}{% url 'aplicar_nsa' curso.id indicador_man.id %}{% endif %}" class="inline-form" onsubmit="return confirmarAplicarNSA('{{ indicador_man.indicador_info.nome }}')">
         {% csrf_token %}
         <button type="submit" class="btn btn-primary">
             {% if indicador_man.NSA %}
@@ -91,15 +91,24 @@
 </table>
 
 <script>
+        // Exemplo de como acessar atributos do indicador_man
+    const NSA = {{ indicador_man.NSA|yesno:"true,false" }};  // Isso resultará em true ou false
+    const nivelSuposto = {{ indicador_man.nivel_suposto|default:'null' }};  // Exibe o nível suposto ou null se não estiver definido
+    const hasRelatorio = {{ indicador_man.conteudo|yesno:"true,false" }};  // Isso resultará em true ou false
+
     // Submete o formulário de upload de relatório automaticamente após selecionar o arquivo
     document.getElementById("file-upload").onchange = function() {
         document.getElementById("enviar-relatorio-form").submit();
     };
 
-    // Confirmação para aplicar NSA, verificando se há relatório ou conceito
-    function confirmarAplicarNSA(nomeIndicador, hasReport, nivelSupostoVazio) {
-        if (hasReport || !nivelSupostoVazio) {
-            return confirm(`Aplicar NSA apagará o relatório e/ou o conceito para o indicador ${nomeIndicador}. Deseja continuar?`);
+        // Confirmação para aplicar NSA, verificando se há relatório ou conceito
+    function confirmarAplicarNSA(nomeIndicador) {
+        // Verifica se NSA não está aplicado
+        if (!NSA) {
+            // Só exibe a mensagem se houver relatório ou o nível suposto não for nulo
+            if (hasRelatorio || nivelSuposto !== null) {
+                return confirm(`Aplicar NSA apagará o relatório e/ou o conceito para o indicador ${nomeIndicador}. Deseja continuar?`);
+            }
         }
         return true;
     }

@@ -33,8 +33,6 @@ def visualizar_indicador(request, curso_id, indicador_id):
         relatorio_form = RelatorioForm(request.POST or None, request.FILES or None, instance=indicador_man)
 
     # Verificar se existe relatório e se nível suposto é None
-    has_relatorio = indicador_man.conteudo is not None
-    nivel_suposto_vazio = indicador_man.nivel_suposto is None
 
     # Adicionar as informações do IndicadorInfo associadas
     indicador_info = indicador_man.indicador_info
@@ -48,8 +46,6 @@ def visualizar_indicador(request, curso_id, indicador_id):
         'tabela_conceitos': indicador_info.tabela_conceitos,
         'mensagem_aviso': indicador_info.mensagem_aviso,
         'tabela_nome': indicador_info.nome,
-        'has_relatorio': has_relatorio,
-        'nivel_suposto_vazio': nivel_suposto_vazio,
     }
 
     return render(request, 'indicadores/detalhesindicadorrelator.html', context)
