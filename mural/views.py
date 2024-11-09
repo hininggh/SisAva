@@ -4,8 +4,7 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .forms import MuralForm  # Importando o formulário MuralForm
 from cursos.models import Curso
-from .models import Mural
-
+from logs.views import registrar_acao_log
 from .models import Mural  # Importando o modelo Mural
 
 
@@ -49,6 +48,9 @@ def postar_mensagem(request, curso_id):
         mensagem.usuario = request.user
         mensagem.curso = curso
         mensagem.save()
+        # Registrar a a postagem
+        acao = 11
+        registrar_acao_log(request.user, curso, acao)
         return JsonResponse({'status': 'Mensagem postada com sucesso!', 'mensagem': mensagem.mensagem})
 
     return JsonResponse({'status': 'Erro: ' + str(form.errors)}, status=400)
@@ -68,6 +70,8 @@ def editar_mensagem(request, mensagem_id):
 
     if form.is_valid():
         form.save()
+        acao = 22
+        registrar_acao_log(request.user, acao)
         return JsonResponse({'status': 'Mensagem editada com sucesso!', 'mensagem': form.cleaned_data['mensagem']})
 
     return JsonResponse({'status': 'Erro: ' + str(form.errors)}, status=400)
@@ -83,4 +87,6 @@ def apagar_mensagem(request, mensagem_id):
         return JsonResponse({'status': 'Erro: Permissão negada.'}, status=403)
 
     mensagem.delete()
+    acao = 23
+    registrar_acao_log(request.user, acao)
     return JsonResponse({'status': 'Mensagem apagada com sucesso!'})

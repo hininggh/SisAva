@@ -125,7 +125,7 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
                 registrar_acao_log(
                     usuario=request.user,
                     curso=None,
-                    acao=f"Visitante '{visitante.id}' nome {visitante.nome} criado"
+                    acao= 3, visitante = visitante
                 )
                 if curso_id:
                     return redirect('cadastrar_ou_editar_visitante', curso_id=curso_id)
@@ -143,7 +143,7 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
             registrar_acao_log(
                 usuario=request.user,
                 curso=None,
-                acao=f"Visitante '{visitante.id}' nome {visitante.nome} editado"
+                acao= 4, visitante = visitante
             )
             cursos_disponiveis = Curso.objects.filter(Q(criador=request.user) | Q(privilegios=True))
             visitante.cursos_acesso.set(curso_form.cleaned_data['cursos_acesso'].intersection(cursos_disponiveis))
@@ -187,7 +187,7 @@ def excluir_visitante(request, visitante_id):
         registrar_acao_log(
             usuario=request.user,
             curso=None,  # Não há curso associado para exclusão do visitante
-            acao=f"Visitante {visitante.nome} da instituição {visitante.instituicao} excluído"
+            acao= 24
         )
 
         visitante.delete()

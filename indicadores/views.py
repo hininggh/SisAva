@@ -99,9 +99,6 @@ def baixar_relatorio(request, curso_id, indicador_id):
                 merger.write(temp_file)
                 merger.close()  # Fechar o merger para liberar recursos
 
-            # Registrar no log
-            acao = "Relatório Baixado com Capa"
-            registrar_acao_log(request.user, curso, acao, indicador)
 
             # Enviar o arquivo mesclado para o download
             with open(mesclado_path, 'rb') as f:
@@ -117,9 +114,6 @@ def baixar_relatorio(request, curso_id, indicador_id):
             response = HttpResponse(indicador.conteudo, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="relatorio_{indicador.indicador_info.nome}.pdf"'
 
-            # Registrar no log
-            acao = "Relatório Baixado"
-            registrar_acao_log(request.user, curso, acao, indicador)
 
             return response
 
@@ -138,7 +132,7 @@ def deletar_relatorio(request, curso_id, indicador_id):
     if request.method == 'POST' and indicador.conteudo:
         try:
             # Registrar a exclusão no log antes da exclusão do arquivo
-            acao = "Relatório Excluído"
+            acao = 14
             registrar_acao_log(request.user, curso, acao, indicador)
 
             # Apaga o arquivo fisicamente e remove a referência ao conteúdo
@@ -165,7 +159,7 @@ def enviar_ou_substituir_relatorio(request, curso_id, indicador_id):
 
     # Verificar se a requisição é POST e contém um arquivo
     if request.method == 'POST' and request.FILES.get('conteudo'):
-        acao = "Relatório Substituído" if indicador.conteudo else "Relatório Enviado"
+        acao = 13 if indicador.conteudo else 12
         indicador.conteudo = request.FILES['conteudo']
         indicador.data_envio = timezone.now()
         indicador.usuario_relatorio = request.user
@@ -191,7 +185,7 @@ def aplicar_nsa(request, curso_id, indicador_id):
     indicador.conteudo = None
     indicador.save()
 
-    acao = "NSA Atribuído"
+    acao = 16
     registrar_acao_log(request.user, curso, acao, indicador)
 
     return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
@@ -205,7 +199,7 @@ def remover_nsa(request, curso_id, indicador_id):
     indicador.NSA = False
     indicador.save()
 
-    acao = "NSA Removido"
+    acao = 17
     registrar_acao_log(request.user, curso, acao, indicador)
 
     return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)

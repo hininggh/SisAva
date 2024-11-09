@@ -47,11 +47,11 @@ def criar_ou_editar_curso(request, curso_id=None):
                 indicadores_info = IndicadorInfo.objects.all()
                 for indicador_info in indicadores_info:
                     IndicadorMan.objects.create(curso=curso, indicador_info=indicador_info)
-                acao = "Curso Criado"
+                acao = 5
             else:
                 curso.save()
-                acao = "Curso Editado"
-            registrar_acao_log(request.user, curso, acao, None)
+                acao = 6
+            registrar_acao_log(request.user, curso, acao)
 
             # Redireciona para edição do curso após criar
             return redirect('editar_curso', curso_id=curso.id)
@@ -291,7 +291,7 @@ def enviar_ou_substituir_capa(request, curso_id):
             curso.save()
 
             # Registrar a ação de acordo com a existência anterior da capa
-            acao = "Capa Substituída" if capa_existente else "Capa Enviada"
+            acao = 9 if capa_existente else 8
             registrar_acao_log(request.user, curso, acao)
 
             # Adicionar mensagem de sucesso
@@ -312,10 +312,6 @@ def baixar_capa(request, curso_id):
         response = HttpResponse(curso.capa, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="capa_{curso.nome}.pdf"'
 
-        # Registrar no log
-        acao = "Capa Baixada"
-        registrar_acao_log(request.user, curso, acao, None)
-
         return response
     return redirect('visualizar_curso', curso_id=curso.id)
 
@@ -330,7 +326,7 @@ def deletar_capa(request, curso_id):
             curso.save()
 
             # Registrar no log
-            acao = "Capa Deletada"
+            acao = 10
             registrar_acao_log(request.user, curso, acao, None)
 
         return redirect('visualizar_curso', curso_id=curso.id)
@@ -350,7 +346,8 @@ def editar_informacoes_complementares(request, curso_id):
         informacoes_complementares = request.POST.get('informacoes_complementares', '')
         curso.informacoes_complementares = informacoes_complementares
         curso.save()
-
+        acao = 7
+        registrar_acao_log(request.user, curso, acao)
         # Redirecionar para a página de visualização do curso
         return redirect('visualizar_curso', curso_id=curso.id)
 
@@ -455,8 +452,6 @@ def gerar_relatorio_geral(request, curso_id):
     merger.write(resultado_final)
     resultado_final.seek(0)
 
-    acao = "Relatório Geral Gerado"
-    registrar_acao_log(request.user, curso, acao, None)
 
     response = HttpResponse(resultado_final, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="relatorio_geral_{curso.nome}.pdf"'

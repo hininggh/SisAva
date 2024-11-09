@@ -1,53 +1,76 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Gerenciar Logs</h2>
+<h1>Gerenciar Logs</h1>
 
-    <!-- Filtros -->
-    <div class="filters mb-4">
-        <form method="get" class="d-flex gap-2">
-            <button type="submit" name="filtro_nsa" value="true" class="btn btn-primary">Filtrar por NSA</button>
-            <button type="submit" name="filtro_conceito" value="true" class="btn btn-secondary">Filtrar por Conceito</button>
-            <button type="submit" name="filtro_relatorio" value="true" class="btn btn-success">Filtrar por Relatório</button>
-        </form>
-    </div>
+<!-- Formulário de Filtragem -->
+<form method="get" action="{% url 'filtrar_logs' %}">
+    <label for="cursos">Cursos:</label>
+    <select name="cursos" multiple>
+        {% for curso in cursos_usuario %}
+            <option value="{{ curso.id }}">{{ curso.nome }}</option>
+        {% endfor %}
+    </select>
 
-    <!-- Tabela de Logs -->
-    <table class="table table-bordered">
+    <label for="acoes">Ações:</label>
+    <select name="acoes" multiple>
+        {% for id, nome in Log.ACOES_CHOICES %}
+            <option value="{{ id }}">{{ nome }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="data_inicio">Data Início:</label>
+    <input type="date" name="data_inicio">
+
+    <label for="data_fim">Data Fim:</label>
+    <input type="date" name="data_fim">
+
+    <button type="submit">Filtrar</button>
+</form>
+
+<!-- Exibição dos Logs em uma Tabela -->
+{% if logs %}
+    <table class="table table-striped">
         <thead>
             <tr>
-                <th>Data/Hora</th>
+                <th>Data e Hora</th>
                 <th>Usuário</th>
+                <th>Curso</th>
                 <th>Ação</th>
-                <th>Descrição Detalhada</th>
-                <th>Indicador ID</th>
+                <th>Visitante</th>
+                <th>Indicador</th>
             </tr>
         </thead>
         <tbody>
             {% for log in logs %}
                 <tr>
-                    <td>{{ log.dataHora }}</td>
-                    <td>{{ log.usuarioID }}</td>
-                    <td>{{ log.ação }}</td>
-                    <td>{{ log.descriçãoDetalhada }}</td>
-                    <td>{{ log.indicadorID }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">Nenhum log encontrado.</td>
+                    <td>{{ log.data_hora }}</td>
+                    <td>{{ log.usuario }}</td>
+                    <td>{{ log.curso }}</td>
+                    <td>{{ log.acao }}</td>
+                    <td>{{ log.visitante }}</td>
+                    <td>{{ log.indicador }}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
-</div>
 
-<script>
-    // Redireciona para a página de logs do curso selecionado
-    function redirectToCourseLogs(select) {
-        if (select.value) {
-            window.location.href = select.value;
-        }
-    }
-</script>
+    <!-- Paginação -->
+    <div class="pagination">
+        {% if logs_page.has_previous %}
+            <a href="?page=1">&laquo; Primeira</a>
+            <a href="?page={{ logs_page.previous_page_number }}">&lsaquo; Anterior</a>
+        {% endif %}
+
+        <span>Página {{ logs_page.number }} de {{ logs_page.paginator.num_pages }}</span>
+
+        {% if logs_page.has_next %}
+            <a href="?page={{ logs_page.next_page_number }}">Próxima &rsaquo;</a>
+            <a href="?page={{ logs_page.paginator.num_pages }}">Última &raquo;</a>
+        {% endif %}
+    </div>
+{% else %}
+    <p>Nenhum log encontrado.</p>
+{% endif %}
 {% endblock %}
