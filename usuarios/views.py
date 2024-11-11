@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.contrib import messages
 from logs.views import registrar_acao_log
-
+from django.utils import timezone
 
 # Verifica se o usuário é um relator
 def is_relator(user):
@@ -58,14 +58,29 @@ def login_view(request):
         email = request.POST['email']
         senha = request.POST['senha']
         usuario = authenticate(request, email=email, password=senha)
+
         if usuario is not None:
+            # Verifica se o usuário é um visitante
+            if usuario.tipo == Usuario.VISITANTE:
+                now = timezone.now()
+                if usuario.data_final and now > usuario.data_final:
+                    # Data atual é depois da data final
+                    return render(request, 'usuarios/login.html', {
+                        'error': 'Acesso expirado, para voltar a usar o sistema, contate o responsável pela avaliação do curso.'
+                    })
+                elif usuario.data_inicial and now < usuario.data_inicial:
+                    # Data atual é antes da data inicial
+                    return render(request, 'usuarios/login.html', {
+                        'error': f'Seu acesso será liberado em {usuario.data_inicial.strftime("%d/%m/%Y %H:%M:%S")}.'
+                    })
+
+            # Se as datas estiverem corretas ou for um relator, faz o login
             login(request, usuario)
-            # Redireciona para a view home, que decidirá entre homerelator ou homevisitante
             return redirect('home')
         else:
             return render(request, 'usuarios/login.html', {'error': 'Credenciais inválidas'})
-    return render(request, 'usuarios/login.html')
 
+    return render(request, 'usuarios/login.html')
 
 # Cadastro de Relator (não precisa de ajuste)
 def cadastro_view(request):
