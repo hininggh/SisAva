@@ -50,8 +50,6 @@ def perfil_view(request):
 
 
 # Verifica se o usuário é um relator
-def is_relator(user):
-    return user.is_authenticated and user.tipo == 'relator'
 
 
 # Página de Login (não precisa de ajuste)
@@ -222,7 +220,7 @@ def home(request):
             'cursos_criados': cursos_criados,
             'cursos_participante': cursos_participante
         }
-        return render(request, 'cursos/homerelator.html', context)
+        return render(request, 'usuarios/homerelator.html', context)
 
     elif usuario.tipo == 'visitante':
         # Define o contexto para o visitante
@@ -231,7 +229,7 @@ def home(request):
             'cursos_acesso': cursos_acesso,
             'usuario': usuario
         }
-        return render(request, 'cursos/homevisitante.html', context)
+        return render(request, 'usuarios/homevisitante.html', context)
 
     # Redireciona ao login se o tipo de usuário for inesperado
     return redirect('login')
