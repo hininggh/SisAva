@@ -15,7 +15,7 @@
 
     <label for="acoes">Ações:</label>
     <select name="acoes" multiple>
-        {% for id, nome in Log.ACOES_CHOICES %}
+        {% for id, nome in acoes_choices %}
             <option value="{{ id }}">{{ nome }}</option>
         {% endfor %}
     </select>

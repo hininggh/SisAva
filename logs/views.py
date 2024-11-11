@@ -5,8 +5,8 @@ from cursos.models import Curso
 from .models import Log
 from django.db.models import Q
 from django.core.paginator import Paginator
-
-
+from django.contrib.auth import get_user_model
+User = get_user_model()
 # Usar strings para referenciar os modelos
 
 
@@ -18,7 +18,7 @@ def filtrar_logs(request):
         Q(criador=request.user) |
         (Q(relatores=request.user) & Q(privilegios=True))
     ).distinct()
-
+    print(cursos_usuario)
     # Captura os parâmetros de filtragem
     cursos_filtrados = request.GET.getlist('cursos')
     acoes_filtradas = request.GET.getlist('acoes')
@@ -62,6 +62,7 @@ def filtrar_logs(request):
         'logs': formatted_logs,
         'cursos_usuario': cursos_usuario,
         'logs_page': logs_page,
+        'acoes_choices': Log.ACOES_CHOICES  # Adicione as opções de ações aqui
     }
 
     return render(request, 'logs/gerenciarlogs.html', context)
