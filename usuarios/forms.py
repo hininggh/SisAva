@@ -59,8 +59,8 @@ class CadastroVisitanteForm(forms.ModelForm):
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control w-100'}),
             'instituicao': forms.TextInput(attrs={'class': 'form-control w-100'}),
-            'data_inicial': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date'}),
-            'data_final': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date'}),
+            'data_inicial': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date', 'format': '%d/%m/%Y'}),
+            'data_final': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date', 'format': '%d/%m/%Y'}),
             'email': forms.EmailInput(attrs={'class': 'form-control w-100'}),
         }
 
