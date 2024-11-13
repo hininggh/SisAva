@@ -343,6 +343,22 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
+    // Função para alternar entre o modo de exibição e o modo de edição
+    function toggleEditInformacoes() {
+        const contentDiv = document.getElementById("informacoes-complementares-content");
+        const formDiv = document.getElementById("form-editar-informacoes");
+        const editButton = document.getElementById("editar-informacoes-btn");
+
+        if (formDiv.style.display === "none") {
+            formDiv.style.display = "block";
+            contentDiv.style.display = "none";
+            editButton.style.display = "none";
+        } else {
+            formDiv.style.display = "none";
+            contentDiv.style.display = "block";
+            editButton.style.display = "block";
+        }
+    }
 
   // ---------------------MINIMIZAÇÃO----------------
 
