@@ -136,7 +136,8 @@
                 <form id="form-postar-mensagem" onsubmit="postarMensagem(event)" style="display: none;">
                     {% csrf_token %}
                     <textarea name="mensagem" class="form-control" placeholder="Escreva sua mensagem"></textarea>
-                    <button type="submit" class="btn btn-primary mt-2">Postar</button>
+                    <!-- O botão de envio terá seu texto atualizado pelo JavaScript -->
+                    <button type="submit" id="submit-button" class="btn btn-primary mt-2">Postar nova mensagem</button>
                 </form>
 
                 <!-- Container das mensagens do mural -->
@@ -230,138 +231,118 @@
     // ------------------------------MURAL-------------------------
 
     // Função para exibir a caixa de mensagem do usuário logado
-    function toggleMessageBox() {
-        const form = document.getElementById("form-postar-mensagem");
-        form.style.display = form.style.display === "none" ? "block" : "none";
-    }
+function toggleMessageBox() {
+    const form = document.getElementById("form-postar-mensagem");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+}
 
-    // Função para postar uma nova mensagem
-    function postarMensagem(event) {
-        event.preventDefault();
+// Função para postar ou substituir uma mensagem
+function postarMensagem(event) {
+    event.preventDefault();
 
-        const mensagem = document.querySelector('#form-postar-mensagem textarea[name="mensagem"]').value;
+    const mensagem = document.querySelector('#form-postar-mensagem textarea[name="mensagem"]').value;
 
-        fetch("{% url 'postar_mensagem' curso.id %}", {
+    fetch("{% url 'postar_mensagem' curso.id %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `mensagem=${encodeURIComponent(mensagem)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status && data.status.includes("sucesso")) {
+            atualizarMural();
+            document.querySelector('#form-postar-mensagem textarea[name="mensagem"]').value = ""; // Limpa o campo
+        } else {
+            alert(data.status || "Erro ao postar a mensagem.");
+        }
+    })
+    .catch(error => console.error("Erro ao postar mensagem:", error));
+}
+
+// Função para atualizar a lista de mensagens do mural
+function atualizarMural() {
+    fetch("{% url 'atualizar_mural' curso.id %}", {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const muralContainer = document.getElementById("mural-messages");
+        muralContainer.innerHTML = '';  // Limpa a lista atual
+
+        // Converte o ID do usuário para um inteiro
+        const userId = parseInt("{{ request.user.id }}");
+
+        let mensagemDoUsuario = null;
+
+        data.mensagens.forEach(mensagem => {
+            const mensagemElement = document.createElement("div");
+            mensagemElement.classList.add("mural-message");
+
+            // Verifica se a mensagem pertence ao usuário atual
+            if (mensagem.pode_editar) {
+                mensagemDoUsuario = mensagem;
+            }
+
+            // Adiciona o botão "Excluir" se a mensagem for do usuário
+            let acoesHtml = "";
+            if (mensagem.pode_editar) {
+                acoesHtml = `
+                    <button onclick="apagarMensagem(${mensagem.id})" class="btn btn-danger btn-sm mt-2">Excluir</button>
+                `;
+            }
+
+            mensagemElement.innerHTML = `
+                <h3>${mensagem.autor}</h3>
+                <p>${mensagem.mensagem}</p>
+                ${acoesHtml}
+            `;
+
+            muralContainer.appendChild(mensagemElement);
+        });
+
+        // Atualiza o texto do botão dependendo se existe uma mensagem do usuário
+        const submitButton = document.getElementById("submit-button");
+        if (mensagemDoUsuario) {
+            submitButton.textContent = "Substituir sua mensagem";
+        } else {
+            submitButton.textContent = "Postar nova mensagem";
+        }
+    })
+    .catch(error => console.error("Erro ao atualizar mural:", error));
+}
+
+// Função para apagar uma mensagem
+function apagarMensagem(mensagemId) {
+    if (confirm("Tem certeza que deseja excluir esta mensagem?")) {
+        fetch(`{% url 'apagar_mensagem' 0 %}`.replace('/0/', `/${mensagemId}/`), {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: `mensagem=${encodeURIComponent(mensagem)}`
+            }
         })
         .then(response => response.json())
         .then(data => {
             if (data.status && data.status.includes("sucesso")) {
                 atualizarMural();
-                document.querySelector('#form-postar-mensagem textarea[name="mensagem"]').value = ""; // Limpa o campo
             } else {
-                alert(data.status || "Erro ao postar a mensagem.");
+                alert(data.status || "Erro ao excluir a mensagem.");
             }
         })
-        .catch(error => console.error("Erro ao postar mensagem:", error));
+        .catch(error => console.error("Erro ao excluir mensagem:", error));
     }
+}
 
-    // Função para atualizar a lista de mensagens do mural
-    function atualizarMural() {
-        fetch("{% url 'atualizar_mural' curso.id %}", {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const muralContainer = document.getElementById("mural-messages");
-            muralContainer.innerHTML = '';  // Limpa a lista atual
-
-            data.mensagens.forEach(mensagem => {
-                const mensagemElement = document.createElement("div");
-                mensagemElement.classList.add("mural-message");
-
-                const titulo = mensagem.pode_editar ? "Minha mensagem compartilhada" : mensagem.autor;
-
-                mensagemElement.innerHTML = `
-                    <h3>${titulo}</h3>
-                    <p>${mensagem.mensagem}</p>
-                    ${mensagem.pode_editar ? `
-                        <div class="message-actions">
-                            <button onclick="editarMensagem(${mensagem.id})" class="btn btn-primary btn-sm">Editar</button>
-                            <button onclick="apagarMensagem(${mensagem.id})" class="btn btn-danger btn-sm">Apagar</button>
-                        </div>
-                    ` : ""}
-                `;
-                muralContainer.appendChild(mensagemElement);
-            });
-        })
-        .catch(error => console.error("Erro ao atualizar mural:", error));
-    }
-
-    // Funções para editar e apagar mensagens
-    function editarMensagem(mensagemId) {
-        const novaMensagem = prompt("Edite sua mensagem:");
-        if (novaMensagem) {
-            fetch(`{% url 'editar_mensagem' 0 %}`.replace('/0/', `/${mensagemId}/`), {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: `mensagem=${encodeURIComponent(novaMensagem)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status && data.status.includes("sucesso")) {
-                    atualizarMural();
-                } else {
-                    alert(data.status || "Erro ao editar a mensagem.");
-                }
-            })
-            .catch(error => console.error("Erro ao editar a mensagem:", error));
-        }
-    }
-
-    function apagarMensagem(mensagemId) {
-        if (confirm("Tem certeza que deseja apagar esta mensagem?")) {
-            fetch(`{% url 'apagar_mensagem' 0 %}`.replace('/0/', `/${mensagemId}/`), {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status && data.status.includes("sucesso")) {
-                    atualizarMural();
-                } else {
-                    alert(data.status || "Erro ao apagar a mensagem.");
-                }
-            })
-            .catch(error => console.error("Erro ao apagar a mensagem:", error));
-        }
-    }
-
-    // Carrega o mural inicial ao abrir a página
-    document.addEventListener("DOMContentLoaded", function() {
-        atualizarMural();
-    });
+// Carrega o mural inicial ao abrir a página
+document.addEventListener("DOMContentLoaded", function() {
+    atualizarMural();
+});
 
 
-    // Função para alternar entre o modo de exibição e o modo de edição
-    function toggleEditInformacoes() {
-        const contentDiv = document.getElementById("informacoes-complementares-content");
-        const formDiv = document.getElementById("form-editar-informacoes");
-        const editButton = document.getElementById("editar-informacoes-btn");
-
-        if (formDiv.style.display === "none") {
-            formDiv.style.display = "block";
-            contentDiv.style.display = "none";
-            editButton.style.display = "none";
-        } else {
-            formDiv.style.display = "none";
-            contentDiv.style.display = "block";
-            editButton.style.display = "block";
-        }
-    }
 
   // ---------------------MINIMIZAÇÃO----------------
 

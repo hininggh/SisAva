@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
-
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, nome, senha=None):
         if not email:
@@ -18,8 +17,7 @@ class UsuarioManager(BaseUserManager):
         return user
 
 
-from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+
 
 class Usuario(AbstractBaseUser):
     # Tipos de usuário
@@ -38,8 +36,8 @@ class Usuario(AbstractBaseUser):
     funcao = models.CharField(max_length=255, blank=True)  # Função desempenhada (somente relatores)
     instituicao = models.CharField(max_length=255, blank=True)  # Somente visitantes
     tipo = models.CharField(max_length=10, choices=TIPO_USUARIO_CHOICES)
-    data_inicial = models.DateTimeField(null=True, blank=True)  # Para visitantes
-    data_final = models.DateTimeField(null=True, blank=True)  # Para visitantes
+    data_inicial = models.DateField(null=True, blank=True)  # Altere para DateField
+    data_final = models.DateField(null=True, blank=True)  #
     cursos_acesso = models.ManyToManyField('cursos.Curso', blank=True, related_name='visitantes')  # Adiciona lista de cursos para visitantes
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)

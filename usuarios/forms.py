@@ -24,6 +24,16 @@ class UsuarioForm(forms.ModelForm):
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'titulacao': forms.TextInput(attrs={'class': 'form-control'}),
             'funcao': forms.TextInput(attrs={'class': 'form-control'}),
+            'data_inicial': forms.DateInput(attrs={
+                'class': 'form-control w-100',
+                'type': 'date',  # Certifique-se de que este 'type' seja 'date'
+                'format': '%Y-%m-%d'  # Adicione o formato explicitamente
+            }),
+            'data_final': forms.DateInput(attrs={
+                'class': 'form-control w-100',
+                'type': 'date',
+                'format': '%Y-%m-%d'
+            }),
         }
 
     def clean(self):
@@ -59,10 +69,24 @@ class CadastroVisitanteForm(forms.ModelForm):
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control w-100'}),
             'instituicao': forms.TextInput(attrs={'class': 'form-control w-100'}),
-            'data_inicial': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date', 'format': '%d/%m/%Y'}),
-            'data_final': forms.DateInput(attrs={'class': 'form-control w-100', 'type': 'date', 'format': '%d/%m/%Y'}),
+            'data_inicial': forms.DateInput(attrs={
+                'class': 'form-control w-100',
+                'type': 'date'
+            }),
+            'data_final': forms.DateInput(attrs={
+                'class': 'form-control w-100',
+                'type': 'date'
+            }),
             'email': forms.EmailInput(attrs={'class': 'form-control w-100'}),
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Verifique se a data não é None antes de formatar
+        if self.instance and self.instance.data_inicial:
+            self.fields['data_inicial'].initial = self.instance.data_inicial.strftime('%Y-%m-%d')
+        if self.instance and self.instance.data_final:
+            self.fields['data_final'].initial = self.instance.data_final.strftime('%Y-%m-%d')
+
 
     def clean(self):
         cleaned_data = super().clean()

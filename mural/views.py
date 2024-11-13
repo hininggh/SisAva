@@ -86,7 +86,9 @@ def apagar_mensagem(request, mensagem_id):
     if mensagem.usuario != request.user:
         return JsonResponse({'status': 'Erro: Permissão negada.'}, status=403)
 
+    curso = mensagem.curso  # Obtém o curso associado à mensagem
+
     mensagem.delete()
     acao = 23
-    registrar_acao_log(request.user, acao)
+    registrar_acao_log(request.user, curso, acao)  # Passa o curso como argumento
     return JsonResponse({'status': 'Mensagem apagada com sucesso!'})

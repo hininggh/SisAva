@@ -116,6 +116,7 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
         # Código para edição, incluindo a definição de `curso_form`
         visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
         form = CadastroVisitanteForm(request.POST or None, instance=visitante)
+
         #remove o campo de senha
         form.fields.pop('senha', None)
         form.fields.pop('confirmar_senha', None)
@@ -174,8 +175,9 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
         'form': form,
         'curso_form': curso_form,
         'visitante': visitante,
+        'data_inicial': visitante.data_inicial.strftime('%Y-%m-%d') if visitante and visitante.data_inicial else None,
+        'data_final': visitante.data_final.strftime('%Y-%m-%d') if visitante and visitante.data_final else None,
     })
-
 
 
 

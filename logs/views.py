@@ -119,28 +119,5 @@ def gerenciar_logs(request):
         'logs': logs,
     })
 
-def visualizar_logs(request, curso_id):
-    curso = get_object_or_404('cursos.Curso', id=curso_id)  # Referência ao modelo Curso como string
-    logs = Log.objects.filter(curso=curso).order_by('-data_hora')  # Ordena pelos mais recentes
-    return render(request, 'logs/gerenciarlogs.html', {'logs': logs, 'curso': curso})
 
-# Filtrar logs por NSA (Não se Aplica)
-@login_required
-def filtrar_por_nsa(request, curso_id):
-    curso = get_object_or_404('cursos.Curso', id=curso_id)  # Referência ao modelo Curso como string
-    logs = Log.objects.filter(curso=curso, acao__icontains="NSA").order_by('-data_hora')
-    return render(request, 'logs/gerenciarlogs.html', {'logs': logs, 'curso': curso})
 
-# Filtrar logs por Conceito
-@login_required
-def filtrar_por_conceito(request, curso_id):
-    curso = get_object_or_404('cursos.Curso', id=curso_id)  # Referência ao modelo Curso como string
-    logs = Log.objects.filter(curso=curso, acao__icontains="Conceito").order_by('-data_hora')
-    return render(request, 'logs/gerenciarlogs.html', {'logs': logs, 'curso': curso})
-
-# Filtrar logs por Relatório
-@login_required
-def filtrar_por_relatorio(request, curso_id):
-    curso = get_object_or_404('cursos.Curso', id=curso_id)  # Referência ao modelo Curso como string
-    logs = Log.objects.filter(curso=curso, acao__icontains="Relatório").order_by('-data_hora')
-    return render(request, 'logs/gerenciarlogs.html', {'logs': logs, 'curso': curso})
