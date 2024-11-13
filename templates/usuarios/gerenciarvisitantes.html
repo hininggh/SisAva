@@ -33,7 +33,23 @@
 <script>
     function confirmarExclusao(nome, instituicao, visitanteId) {
         if (confirm(`Deseja prosseguir com a exclusão do visitante ${nome} da ${instituicao}?`)) {
-            window.location.href = `/usuarios/excluir_visitante/${visitanteId}/`;
+            // Faz uma solicitação AJAX para excluir o visitante
+            fetch(`/usuarios/excluir_visitante/${visitanteId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'error') {
+                        // Exibe um pop-up de erro
+                        alert(data.message);
+                    } else if (data.status === 'success') {
+                        // Exibe um pop-up de sucesso e recarrega a página
+                        alert(data.message);
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error("Erro ao excluir visitante:", error);
+                    alert("Ocorreu um erro inesperado. Tente novamente mais tarde.");
+                });
         }
     }
 </script>
