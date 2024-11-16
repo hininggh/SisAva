@@ -22,8 +22,8 @@
 
 <!-- Exibir Relatório -->
 <div style="margin-top: 20px;">
-    {% if indicador_man.conteudo %}
-        <p><strong>Relatório:</strong> {{ indicador_man.conteudo.name }}</p>
+    {% if nome_relatorio %}
+        <p><strong>Relatório:</strong> {{ nome_relatorio }}</p>
         <a href="{% url 'baixar_relatorio' curso.id indicador_man.id %}">
             <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
         </a>

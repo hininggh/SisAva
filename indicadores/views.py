@@ -54,12 +54,12 @@ def visualizar_indicador(request, curso_id, indicador_id):
 
 
 def visualizar_indicador_visitante(request, curso_id, indicador_id):
-    # Buscar o curso e verificar se o usuário é um visitante com acesso
     curso = get_object_or_404(Curso, id=curso_id)
     indicador_man = get_object_or_404(IndicadorMan, curso=curso, id=indicador_id)
 
     if request.user.tipo == Usuario.VISITANTE and curso in request.user.cursos_acesso.all():
         indicador_info = indicador_man.indicador_info
+        nome_relatorio = os.path.basename(indicador_man.conteudo.name) if indicador_man.conteudo else None
 
         context = {
             'curso': curso,
@@ -67,11 +67,11 @@ def visualizar_indicador_visitante(request, curso_id, indicador_id):
             'tabela_conceitos': indicador_info.tabela_conceitos,
             'mensagem_aviso': indicador_info.mensagem_aviso,
             'tabela_nome': indicador_info.nome,
+            'nome_relatorio': nome_relatorio
         }
 
         return render(request, 'indicadores/detalhesindicadorvisitante.html', context)
     else:
-        # Se o usuário não tiver acesso, mostrar uma página de acesso negado
         return render(request, 'cursos/acesso_negado.html', {'curso': curso})
 #_________
 
