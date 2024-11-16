@@ -3,13 +3,13 @@
 <div class="container mt-4">
     <h2 class="text-center">Perfil do Usuário</h2>
 
-    {% if is_relator %}
-        <!-- Relator pode editar seu perfil -->
+    {% if request.user.tipo == 'relator' %}
+        <!-- Formulário para editar o perfil e alterar a senha -->
         <form method="post" id="perfilForm">
             {% csrf_token %}
-
+            <!-- Renderizando cada campo individualmente -->
             <div class="form-group">
-                {{ form.nome.label_tag }}
+                <label for="{{ form.nome.id_for_label }}">Nome</label>
                 {{ form.nome }}
                 {% if form.nome.errors %}
                     <div class="text-danger">{{ form.nome.errors }}</div>
@@ -17,7 +17,7 @@
             </div>
 
             <div class="form-group">
-                {{ form.email.label_tag }}
+                <label for="{{ form.email.id_for_label }}">Email</label>
                 {{ form.email }}
                 {% if form.email.errors %}
                     <div class="text-danger">{{ form.email.errors }}</div>
@@ -25,7 +25,7 @@
             </div>
 
             <div class="form-group">
-                {{ form.telefone.label_tag }}
+                <label for="{{ form.telefone.id_for_label }}">Telefone</label>
                 {{ form.telefone }}
                 {% if form.telefone.errors %}
                     <div class="text-danger">{{ form.telefone.errors }}</div>
@@ -33,31 +33,44 @@
             </div>
 
             <div class="form-group">
-                {{ form.funcao.label_tag }}
-                {{ form.funcao }}
-                {% if form.funcao.errors %}
-                    <div class="text-danger">{{ form.funcao.errors }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-group">
-                {{ form.titulacao.label_tag }}
+                <label for="{{ form.titulacao.id_for_label }}">Titulação</label>
                 {{ form.titulacao }}
                 {% if form.titulacao.errors %}
                     <div class="text-danger">{{ form.titulacao.errors }}</div>
                 {% endif %}
             </div>
 
+            <div class="form-group">
+                <label for="{{ form.funcao.id_for_label }}">Função</label>
+                {{ form.funcao }}
+                {% if form.funcao.errors %}
+                    <div class="text-danger">{{ form.funcao.errors }}</div>
+                {% endif %}
+            </div>
+
             <div class="text-center mt-4">
-                <!-- Botão para Salvar Alterações -->
                 <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-
-                <!-- Botão para abrir o modal de alteração de senha -->
-                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#alterarSenhaModal">
-                    Alterar Senha
-                </button>
-
+                <button type="button" class="btn btn-warning" onclick="toggleSenhaSection()">Alterar Senha</button>
                 <a href="{% url 'home' %}" class="btn btn-secondary">Cancelar</a>
+            </div>
+
+            <!-- Seção de Alteração de Senha (inicia oculta, mas é exibida se houver erros) -->
+            <div id="senhaSection" style="{% if mostrar_sessao_senha %}display: block;{% else %}display: none;{% endif %} margin-top: 20px;">
+                <div class="form-group">
+                    <label for="{{ form.senha.id_for_label }}">Nova Senha</label>
+                    {{ form.senha }}
+                    {% if form.senha.errors %}
+                        <div class="text-danger">{{ form.senha.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.confirmar_senha.id_for_label }}">Confirmar Nova Senha</label>
+                    {{ form.confirmar_senha }}
+                    {% if form.confirmar_senha.errors %}
+                        <div class="text-danger">{{ form.confirmar_senha.errors }}</div>
+                    {% endif %}
+                </div>
             </div>
         </form>
     {% else %}
@@ -67,47 +80,16 @@
         <p><strong>Telefone:</strong> {{ usuario.telefone }}</p>
         <p><strong>Instituição:</strong> {{ usuario.instituicao }}</p>
     {% endif %}
-
-    <!-- Modal de Alteração de Senha -->
-    <div class="modal fade" id="alterarSenhaModal" tabindex="-1" aria-labelledby="alterarSenhaModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="alterarSenhaModalLabel">Alterar Senha</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="novaSenha">Nova Senha</label>
-                        <input type="password" name="senha" id="novaSenha" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="confirmarSenha">Confirmar Nova Senha</label>
-                        <input type="password" name="confirmar_senha" id="confirmarSenha" class="form-control">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="validarSenha()">Salvar Nova Senha e Alterações</button>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
-    function validarSenha() {
-        const senha = document.getElementById('novaSenha').value;
-        const confirmarSenha = document.getElementById('confirmarSenha').value;
-
-        if (senha.trim() === "" || confirmarSenha.trim() === "") {
-            alert('Por favor, preencha ambos os campos de senha.');
-            return;
-        }
-        if (senha !== confirmarSenha) {
-            alert('As senhas não coincidem.');
+    // Função para mostrar ou ocultar a seção de senha
+    function toggleSenhaSection() {
+        const senhaSection = document.getElementById('senhaSection');
+        if (senhaSection.style.display === 'none' || senhaSection.style.display === '') {
+            senhaSection.style.display = 'block'; // Mostra a seção de senha
         } else {
-            document.getElementById('perfilForm').submit();
+            senhaSection.style.display = 'none'; // Oculta a seção de senha
         }
     }
 </script>

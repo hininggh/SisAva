@@ -6,7 +6,6 @@
 <div class="container mt-4">
     <h2 class="text-center">{% if visitante %}Editar Visitante{% else %}Cadastrar Visitante{% endif %}</h2>
 
-
     <form method="post" id="visitanteForm">
         {% csrf_token %}
 
@@ -43,6 +42,7 @@
                     <div class="text-danger">{{ form.data_final.errors }}</div>
                 {% endif %}
             </div>
+
             <div class="form-group">
                 {{ form.email.label_tag }}
                 {{ form.email }}
@@ -50,9 +50,12 @@
                     <div class="text-danger">{{ form.email.errors }}</div>
                 {% endif %}
             </div>
-
-            <!-- Exibe campos de senha e confirmação de senha somente no cadastro -->
-            {% if not visitante %}
+            {% if visitante %}
+            <!-- Botão para mostrar/ocultar a seção de senha -->
+                <button type="button" class="btn btn-warning" onclick="toggleSenhaSection()">Alterar Senha</button>
+            {% endif %}
+            <!-- Seção de senha (inicialmente oculta) -->
+            <div id="senhaSection" style="display: none; margin-top: 20px;">
                 <div class="form-group">
                     {{ form.senha.label_tag }}
                     {{ form.senha }}
@@ -68,7 +71,7 @@
                         <div class="text-danger">{{ form.confirmar_senha.errors }}</div>
                     {% endif %}
                 </div>
-            {% endif %}
+            </div>
 
             <!-- Cursos com Acesso (somente para edição) -->
             {% if visitante %}
@@ -84,70 +87,31 @@
         </div>
 
         <div class="text-center mt-4">
-            <!-- Botão para Salvar Alterações -->
             <button type="submit" class="btn btn-primary">{% if visitante %}Salvar Alterações{% else %}Cadastrar{% endif %}</button>
-
-            {% if visitante %}
-                <!-- Botão para abrir o modal de alteração de senha no modo de edição -->
-                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#alterarSenhaModal">
-                    Alterar Senha
-                </button>
-            {% endif %}
-
             <a href="{% if curso_id %}{% url 'editar_curso' curso_id=curso_id %}{% else %}{% url 'gerenciarvisitantes' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
         </div>
-        {% if visitante %}
-            <!-- Modal de Alteração de Senha -->
-            <div class="modal fade" id="alterarSenhaModal" tabindex="-1" aria-labelledby="alterarSenhaModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="alterarSenhaModalLabel">Alterar Senha</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label for="novaSenha">Nova Senha</label>
-                                <input type="password" name="senha" id="novaSenha" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label for="confirmarSenha">Confirmar Nova Senha</label>
-                                <input type="password" name="confirmar_senha" id="confirmarSenha" class="form-control">
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <!-- Botão para validar e submeter o formulário -->
-                            <button type="button" class="btn btn-primary" onclick="validarSenha()">Salvar Nova Senha e Alterações</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
     </form>
 </div>
 
-<!-- Script JavaScript atualizado -->
-    <script>
-
-
-
-
-        function validarSenha() {
-            const senha = document.getElementById('novaSenha').value;
-            const confirmarSenha = document.getElementById('confirmarSenha').value;
-
-            if (senha.trim() === "" || confirmarSenha.trim() === "") {
-                alert('Por favor, preencha ambos os campos de senha.');
-                return;
-            }
-            if (senha !== confirmarSenha) {
-                alert('As senhas não coincidem.');
-            } else {
-                document.getElementById('visitanteForm').submit();
-            }
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Verifica se a seção de senha deve ser mostrada
+        const mostrarSessaoSenha = {{ mostrar_sessao_senha|yesno:"true,false" }};
+        if (mostrarSessaoSenha === true) {  // Corrigido para comparação direta com true
+            document.getElementById('senhaSection').style.display = 'block';
         }
+    });
 
-
+    // Função para mostrar ou ocultar a seção de senha
+    function toggleSenhaSection() {
+        const senhaSection = document.getElementById('senhaSection');
+        if (senhaSection.style.display === 'none' || senhaSection.style.display === '') {
+            senhaSection.style.display = 'block';
+        } else {
+            senhaSection.style.display = 'none';
+        }
+    }
 </script>
+
+
 {% endblock %}

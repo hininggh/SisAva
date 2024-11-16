@@ -7,12 +7,12 @@ class UsuarioForm(forms.ModelForm):
     senha = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
         label="Senha",
-        required=False  # Torna a senha opcional para edições
+        required=False  # A senha não é obrigatória, a menos que seja alterada
     )
     confirmar_senha = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
         label="Confirmar Senha",
-        required=False  # Torna a confirmação da senha opcional para edições
+        required=False  # A confirmação da senha também não é obrigatória
     )
 
     class Meta:
@@ -24,16 +24,6 @@ class UsuarioForm(forms.ModelForm):
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'titulacao': forms.TextInput(attrs={'class': 'form-control'}),
             'funcao': forms.TextInput(attrs={'class': 'form-control'}),
-            'data_inicial': forms.DateInput(attrs={
-                'class': 'form-control w-100',
-                'type': 'date',  # Certifique-se de que este 'type' seja 'date'
-                'format': '%Y-%m-%d'  # Adicione o formato explicitamente
-            }),
-            'data_final': forms.DateInput(attrs={
-                'class': 'form-control w-100',
-                'type': 'date',
-                'format': '%Y-%m-%d'
-            }),
         }
 
     def clean(self):
@@ -41,26 +31,46 @@ class UsuarioForm(forms.ModelForm):
         senha = cleaned_data.get("senha")
         confirmar_senha = cleaned_data.get("confirmar_senha")
 
-        # Só valide se as senhas não estiverem vazias
+        # Realiza a validação apenas se o usuário tiver preenchido a senha
         if senha or confirmar_senha:
             if senha != confirmar_senha:
                 self.add_error('confirmar_senha', "As senhas não coincidem.")
 
+            # Verifica a força da senha (exemplo)
+            if senha and len(senha) < 8:
+                self.add_error('senha', "A senha deve ter pelo menos 8 caracteres.")
+            if senha and (not any(char.isdigit() for char in senha) or
+                          not any(char.isupper() for char in senha) or
+                          not any(char.islower() for char in senha) or
+                          not any(char in '!@#$%^&*()_+-=[]{}|;:,.<>?' for char in senha)):
+                self.add_error('senha',
+                               "A senha deve incluir letras maiúsculas, minúsculas, números e caracteres especiais.")
+
         return cleaned_data
 
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
 
+        # Se a senha for fornecida, atualiza a senha
+        if self.cleaned_data.get('senha'):
+            usuario.set_password(self.cleaned_data['senha'])
+
+        if commit:
+            usuario.save()
+
+        return usuario
 
 
 class CadastroVisitanteForm(forms.ModelForm):
     senha = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
         label="Senha",
-        required=True
+        required=False
     )
     confirmar_senha = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
         label="Confirmar Senha",
-        required=True
+        required=False
     )
 
     class Meta:
@@ -93,12 +103,25 @@ class CadastroVisitanteForm(forms.ModelForm):
         senha = cleaned_data.get("senha")
         confirmar_senha = cleaned_data.get("confirmar_senha")
 
-        if senha and confirmar_senha and senha != confirmar_senha:
-            self.add_error('confirmar_senha', "As senhas não coincidem.")
+        # Verifica se o usuário é novo (não tem um ID) ou se é uma edição
+        if not self.instance.pk and not senha:
+            self.add_error('senha', "A senha é obrigatória para novos cadastros.")
+
+        # Se a senha for fornecida (mesmo na edição), faça as verificações de força e coincidência
+        if senha or confirmar_senha:
+            if senha != confirmar_senha:
+                self.add_error('confirmar_senha', "As senhas não coincidem.")
+            # Verificação de força da senha (exemplo)
+            if len(senha) < 8:
+                self.add_error('senha', "A senha deve ter pelo menos 8 caracteres.")
+            if (not any(char.isdigit() for char in senha) or
+                    not any(char.isupper() for char in senha) or
+                    not any(char.islower() for char in senha) or
+                    not any(char in '!@#$%^&*()_+-=[]{}|;:,.<>?' for char in senha)):
+                self.add_error('senha',
+                               "A senha deve incluir letras maiúsculas, minúsculas, números e caracteres especiais.")
 
         return cleaned_data
-
-
 
 class AdicionarCursosForm(forms.ModelForm):
     cursos_acesso = forms.ModelMultipleChoiceField(

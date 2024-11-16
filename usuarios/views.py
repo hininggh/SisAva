@@ -1,53 +1,77 @@
-from django.contrib.auth import authenticate, login, logout  # Importa os métodos de autenticação
-from django.http import HttpResponseForbidden  # Certifique-se de importar VisitanteForm
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from cursos.models import Curso
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Usuario
 from .forms import UsuarioForm, CadastroVisitanteForm, AdicionarCursosForm
-import json
-from django.db.models import Q  # Adicione esta importação
+from django.contrib.auth import update_session_auth_hash
+from django.db.models import Q
 from django.http import JsonResponse
-from django.urls import reverse
 from django.contrib import messages
 from logs.views import registrar_acao_log
 from django.utils import timezone
+from django.urls import reverse
+import json
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
 
 # Verifica se o usuário é um relator
 def is_relator(user):
     return user.is_authenticated and user.tipo == 'relator'
 
 # Página de Perfil (Edição para Relator, Visualização para Visitante)
+
+@login_required
+
+
+
+
 @login_required
 def perfil_view(request):
     if request.user.tipo == 'relator':  # Verifica se o usuário é um relator
         if request.method == 'POST':
             form = UsuarioForm(request.POST, instance=request.user)
-            senha = request.POST.get('senha')
-            confirmar_senha = request.POST.get('confirmar_senha')
-            print(form.errors)
-            print('ppassou')# Adicione esta linha para imprimir os erros do formulário
+
+            # Executa a verificação da validade do formulário
             if form.is_valid():
                 usuario = form.save(commit=False)
 
-                # Verificar se as senhas foram fornecidas e são iguais
-                if senha and confirmar_senha:
-                    if senha == confirmar_senha:
-                        usuario.set_password(senha)
+                # Verifica se a senha foi preenchida e se é válida
+                senha = form.cleaned_data.get('senha')
+                if senha:
+                    # Se os campos de senha foram preenchidos, execute a verificação
+                    if form.errors.get('senha') or form.errors.get('confirmar_senha'):
+                        # Se houver erros de senha, renderiza novamente a página com os erros
+                        return render(request, 'usuarios/perfil.html', {
+                            'form': form,
+                            'mostrar_sessao_senha': True  # Mantém a seção de senha aberta
+                        })
                     else:
-                        form.add_error('confirmar_senha', "As senhas não coincidem.")
-                        return render(request, 'usuarios/perfil.html', {'form': form, 'is_relator': True})
+                        # Se a senha for válida, atualiza a senha e mantém o usuário autenticado
+                        usuario.set_password(senha)
+                        update_session_auth_hash(request, usuario)
 
+                # Salva o usuário e redireciona
                 usuario.save()
+                print("validou o formulário")
                 return redirect('perfil')
+            else:
+                # Se o formulário for inválido, renderiza novamente com os erros
+                return render(request, 'usuarios/perfil.html', {
+                    'form': form,
+                    'mostrar_sessao_senha': True  # Mantém a seção de senha aberta
+                })
         else:
             form = UsuarioForm(instance=request.user)
 
-        return render(request, 'usuarios/perfil.html', {'form': form, 'is_relator': True})
-    else:  # Se o usuário for um visitante
-        return render(request, 'usuarios/perfil.html', {'usuario': request.user, 'is_relator': False})
-
-
+        return render(request, 'usuarios/perfil.html', {
+            'form': form,
+            'mostrar_sessao_senha': False
+        })
+    else:
+        return render(request, 'usuarios/perfil.html', {'usuario': request.user})
 
 # Verifica se o usuário é um relator
 
@@ -107,62 +131,43 @@ def cadastro_view(request):
 # Cadastro de Visitante (apenas relatores podem acessar)
 @login_required
 def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
+    mostrar_sessao_senha = False
     if not request.user.is_authenticated or request.user.tipo != Usuario.RELATOR:
         messages.error(request, "Você não tem permissão para acessar esta página.")
         return redirect('home')
-    visitante = None
 
+    visitante = None
     if visitante_id:
-        # Código para edição, incluindo a definição de `curso_form`
         visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
         form = CadastroVisitanteForm(request.POST or None, instance=visitante)
-
-        #remove o campo de senha
-        form.fields.pop('senha', None)
-        form.fields.pop('confirmar_senha', None)
-        # Filtra os cursos disponíveis para o relator e marca os cursos que o visitante já tem
         cursos_disponiveis = Curso.objects.filter(Q(criador=request.user) | Q(privilegios=True))
         curso_form = AdicionarCursosForm(request.POST or None, instance=visitante)
         curso_form.fields['cursos_acesso'].queryset = cursos_disponiveis
         curso_form.initial['cursos_acesso'] = visitante.cursos_acesso.all()
     else:
-        # Código para criação
         form = CadastroVisitanteForm(request.POST or None)
-        curso_form = None  # Não inicializa `curso_form` no modo de criação
-        if request.method == 'POST':
-            if form.is_valid():
-                visitante = form.save(commit=False)
-                visitante.tipo = Usuario.VISITANTE
-                visitante.set_password(form.cleaned_data['senha'])
-                visitante.save()
-                # Registra a ação de criação de visitante no log
-                registrar_acao_log(
-                    usuario=request.user,
-                    curso=None,
-                    acao= 3, visitante = visitante
-                )
-                if curso_id:
-                    return redirect('cadastrar_ou_editar_visitante', curso_id=curso_id)
-                else:
-                    return redirect('cadastrar_ou_editar_visitante', visitante_id=visitante.id)
+        curso_form = None
+
+        mostrar_sessao_senha = True  # Inicialmente, a seção de senha está oculta
 
     if request.method == 'POST':
-        if form.is_valid() and curso_form.is_valid():
+        if form.is_valid() and (not curso_form or curso_form.is_valid()):
             visitante = form.save(commit=False)
             visitante.tipo = Usuario.VISITANTE
-            if 'senha' in form.cleaned_data and form.cleaned_data['senha']:
-                visitante.set_password(form.cleaned_data['senha'])
-            visitante.save()
-            # Registra a ação de edição do visitante no log
-            registrar_acao_log(
-                usuario=request.user,
-                curso=None,
-                acao= 4, visitante = visitante
-            )
-            cursos_disponiveis = Curso.objects.filter(Q(criador=request.user) | Q(privilegios=True))
-            visitante.cursos_acesso.set(curso_form.cleaned_data['cursos_acesso'].intersection(cursos_disponiveis))
 
-            messages.success(request, "Visitante salvo com sucesso.")
+            senha = form.cleaned_data.get('senha')
+            if senha:
+                visitante.set_password(senha)
+
+            visitante.save()
+            registrar_acao_log(usuario=request.user, curso=None, visitante=visitante,  acao=4)
+            if visitante_id:
+                messages.success(request, "Visitante editado com sucesso.")
+            else:
+                messages.success(request, "Visitante cadastrado com sucesso.")
+
+            if curso_form:
+                visitante.cursos_acesso.set(curso_form.cleaned_data['cursos_acesso'].intersection(cursos_disponiveis))
 
             if curso_id:
                 return redirect('editar_curso', curso_id=curso_id)
@@ -170,6 +175,9 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
                 return redirect('gerenciarvisitantes')
         else:
             messages.error(request, "Por favor, corrija os erros abaixo.")
+            # Mantém a seção de senha aberta se houver erros nos campos de senha
+            if form.errors.get('senha') or form.errors.get('confirmar_senha'):
+                mostrar_sessao_senha = True
 
     return render(request, 'usuarios/cadastrovisitante.html', {
         'form': form,
@@ -177,7 +185,10 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
         'visitante': visitante,
         'data_inicial': visitante.data_inicial.strftime('%Y-%m-%d') if visitante and visitante.data_inicial else None,
         'data_final': visitante.data_final.strftime('%Y-%m-%d') if visitante and visitante.data_final else None,
+        'mostrar_sessao_senha': mostrar_sessao_senha
     })
+
+
 
 
 
