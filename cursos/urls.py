@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
+
 
 urlpatterns = [
     path('criar/', views.criar_ou_editar_curso, name='criar_curso'),  # Criação de curso
@@ -22,6 +23,9 @@ urlpatterns = [
          name='adicionar_visitante_curso'),
     path('cursos/<int:curso_id>/visitantes/excluir/<int:visitante_id>/', views.excluir_visitante_curso,
          name='excluir_visitante_curso'),
+    path('curso/<int:curso_id>/ceder-criacao/<int:novo_relator_id>/', views.ceder_criacao_curso,
+         name='ceder_criacao_curso'),
+    path('usuarios/', include('usuarios.urls')),
 ]
 
 

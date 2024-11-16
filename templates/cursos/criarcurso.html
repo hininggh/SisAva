@@ -41,7 +41,10 @@
                 {% for relator in relatores %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         {{ relator.nome }}
-                        <button onclick="excluirRelator({{ relator.id }})" class="btn btn-danger btn-sm">Excluir</button>
+                        <div>
+                            <button onclick="cederCriacao({{ relator.id }})" class="btn btn-secondary btn-sm">Ceder Criação</button>
+                            <button onclick="excluirRelator({{ relator.id }})" class="btn btn-danger btn-sm">Excluir</button>
+                        </div>
                     </li>
                 {% empty %}
                     <p>Nenhum relator adicionado.</p>
@@ -54,6 +57,7 @@
     <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Visualizar Curso</button>
     <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-primary mt-4">Gerenciar Visitantes</a>
     <button class="btn btn-danger mt-4" onclick="excluirCurso()">Excluir Curso</button>
+
 
     <hr>
     <!-- Adição e exclusão de visitantes -->
@@ -170,7 +174,10 @@
                             item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
                             item.innerHTML = `
                                 ${relator.nome}
-                                <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>
+                                <div>
+                                    <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>
+                                    <button onclick="cederCriacao(${relator.id})" class="btn btn-secondary btn-sm">Ceder Criação</button>
+                                </div>
                             `;
                             listaRelatoresAdicionados.appendChild(item);
                         });
@@ -308,6 +315,29 @@
                 .catch(error => console.error("Erro ao excluir o curso:", error));
             }
         }
+
+            // Função para ceder a criação do curso
+            function cederCriacao(novoRelatorId) {
+                if (confirm("Tem certeza que deseja ceder a posição de criador? Fazer isso ainda o deixa como um dos relatores da avaliação.")) {
+                    fetch("{% url 'ceder_criacao_curso' curso.id 0 %}".replace('/0/', '/' + novoRelatorId + '/'), {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Criação do curso cedida com sucesso!");
+                            window.location.href = "{% url 'home' %}";  // Redireciona para a home após ceder a criação
+                        } else {
+                            alert(data.error || "Erro ao ceder a criação. Tente novamente.");
+                        }
+                    })
+                    .catch(error => console.error("Erro ao ceder a criação:", error));
+                }
+            }
     {% endif %}
 </script>
 

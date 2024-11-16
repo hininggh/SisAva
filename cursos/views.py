@@ -1,9 +1,7 @@
-from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.utils import timezone
-from .models import Curso
-from usuarios.models import Usuario
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
 from indicadores.models import IndicadorInfo, IndicadorMan
 from logs.views import registrar_acao_log
 from cursos.forms import CursoForm, InformacoesComplementaresForm
@@ -18,9 +16,11 @@ from reportlab.lib.units import cm
 from django.contrib.auth import get_user_model
 from .forms import CapaCursoForm
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from .models import Curso
+from usuarios.models import Usuario
 import os
 import logging
+from django.contrib import messages
 
 Usuario = get_user_model()
 
@@ -32,7 +32,7 @@ def criar_ou_editar_curso(request, curso_id=None):
     if curso_id:
         curso = get_object_or_404(Curso, id=curso_id)
         if request.user != curso.criador and not (curso.privilegios and request.user in curso.relatores.all()):
-            return redirect('homerelator')
+            return redirect('home')
     else:
         curso = None
 
@@ -81,6 +81,37 @@ def criar_ou_editar_curso(request, curso_id=None):
         'visitantes_disponiveis': visitantes_disponiveis,
         'visitantes': visitantes
     })
+
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Curso
+from usuarios.models import Usuario  # Ajuste o caminho do modelo se necessário
+
+@login_required
+def ceder_criacao_curso(request, curso_id, novo_relator_id):
+    # Obtém o curso e verifica se o usuário logado é o criador
+    curso = get_object_or_404(Curso, id=curso_id)
+    if request.user != curso.criador:
+        return JsonResponse({'success': False, 'error': "Você não tem permissão para ceder a criação deste curso."})
+
+    # Obtém o novo relator e verifica se ele é um relator do curso
+    novo_relator = get_object_or_404(Usuario, id=novo_relator_id, tipo=Usuario.RELATOR)
+    if not curso.relatores.filter(id=novo_relator.id).exists():
+        return JsonResponse({'success': False, 'error': "O usuário selecionado não é um relator deste curso."})
+
+    # Atualiza o criador do curso para o novo relator
+    curso.criador = novo_relator
+    curso.save()
+
+    # Verifica se o relator antigo está na lista de relatores; se não, adiciona
+    if not curso.relatores.filter(id=request.user.id).exists():
+        curso.relatores.add(request.user)
+
+    return JsonResponse({'success': True})
+
+
 
 @login_required
 def excluir_curso(request, curso_id):
@@ -360,7 +391,7 @@ def gerar_relatorio_geral(request, curso_id):
 
     # Verifica se o usuário é relator ou visitante com permissão
     if request.user not in curso.relatores.all() and request.user.tipo != 'visitante':
-        return redirect('homevisitante')
+        return redirect('home')
 
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)

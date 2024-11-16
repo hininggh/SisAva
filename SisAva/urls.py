@@ -20,6 +20,8 @@ Including another URLconf
 from django.urls import path, include
 from usuarios import views as usuarios_views  # Importa a view login se necessário
 
+
+
 urlpatterns = [
     path('', usuarios_views.home, name='home'),  # Redefine a URL raiz para home
     path('usuarios/', include('usuarios.urls')),  # Inclui URLs de usuários
