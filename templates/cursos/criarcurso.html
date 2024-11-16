@@ -306,10 +306,10 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert("Curso excluído com sucesso!");
+                        alert(data.message || "Curso excluído com sucesso!");
                         window.location.href = "{% url 'home' %}";  // Redireciona para a home após exclusão
                     } else {
-                        alert("Erro ao excluir o curso. Tente novamente.");
+                        alert(data.error || "Erro ao excluir o curso. Tente novamente.");
                     }
                 })
                 .catch(error => console.error("Erro ao excluir o curso:", error));

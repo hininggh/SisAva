@@ -22,6 +22,13 @@ import os
 import logging
 from django.contrib import messages
 
+
+
+
+
+
+
+
 Usuario = get_user_model()
 
 
@@ -83,11 +90,7 @@ def criar_ou_editar_curso(request, curso_id=None):
     })
 
 
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .models import Curso
-from usuarios.models import Usuario  # Ajuste o caminho do modelo se necessário
+
 
 @login_required
 def ceder_criacao_curso(request, curso_id, novo_relator_id):
@@ -113,10 +116,16 @@ def ceder_criacao_curso(request, curso_id, novo_relator_id):
 
 
 
+
+
 @login_required
 def excluir_curso(request, curso_id):
     # Obtém o curso ou retorna 404 se não for encontrado
     curso = get_object_or_404(Curso, id=curso_id)
+
+    # Verifica se o usuário logado é o criador do curso
+    if request.user != curso.criador:
+        return JsonResponse({'success': False, 'error': "Somente o criador pode excluir uma avaliação."})
 
     # Remove o curso de todos os visitantes antes de deletar
     visitantes = Usuario.objects.filter(cursos_acesso=curso)
@@ -125,10 +134,8 @@ def excluir_curso(request, curso_id):
 
     # Deleta o curso
     curso.delete()
-    messages.success(request, "Curso deletado com sucesso.")
+    return JsonResponse({'success': True, 'message': "Curso deletado com sucesso."})
 
-    # Redireciona para a página inicial
-    return redirect('home')
 
 
 @login_required

@@ -130,8 +130,22 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
     else:
         form = CadastroVisitanteForm(request.POST or None)
         curso_form = None
-
         mostrar_sessao_senha = True  # Inicialmente, a seção de senha está oculta
+        if request.method == 'POST':
+            if form.is_valid():
+                visitante = form.save(commit=False)
+                visitante.tipo = Usuario.VISITANTE
+
+                senha = form.cleaned_data.get('senha')
+                if senha:
+                    visitante.set_password(senha)
+
+                visitante.save()
+                registrar_acao_log(usuario=request.user, curso=None, visitante=visitante, acao=4)
+                if curso_id:
+                    return redirect('cadastrar_ou_editar_visitante', visitante_id=visitante.id, curso_id=curso_id)
+                else:
+                    return redirect('cadastrar_ou_editar_visitante', visitante_id=visitante.id)
 
     if request.method == 'POST':
         if form.is_valid() and (not curso_form or curso_form.is_valid()):
