@@ -86,7 +86,7 @@ def login_view(request):
         if usuario is not None:
             # Verifica se o usuário é um visitante
             if usuario.tipo == Usuario.VISITANTE:
-                now = timezone.now()
+                now = timezone.now().date()  # Converte para date para comparação
                 if usuario.data_final and now > usuario.data_final:
                     # Data atual é depois da data final
                     return render(request, 'usuarios/login.html', {
@@ -95,7 +95,7 @@ def login_view(request):
                 elif usuario.data_inicial and now < usuario.data_inicial:
                     # Data atual é antes da data inicial
                     return render(request, 'usuarios/login.html', {
-                        'error': f'Seu acesso será liberado em {usuario.data_inicial.strftime("%d/%m/%Y %H:%M:%S")}.'
+                        'error': f'Seu acesso será liberado em {usuario.data_inicial.strftime("%d/%m/%Y")}.'
                     })
 
             # Se as datas estiverem corretas ou for um relator, faz o login
