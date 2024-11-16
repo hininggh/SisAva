@@ -11,21 +11,6 @@ from django.http import JsonResponse
 from django.contrib import messages
 from logs.views import registrar_acao_log
 from django.utils import timezone
-from django.urls import reverse
-import json
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
-
-
-# Verifica se o usuário é um relator
-def is_relator(user):
-    return user.is_authenticated and user.tipo == 'relator'
-
-# Página de Perfil (Edição para Relator, Visualização para Visitante)
-
-@login_required
-
-
 
 
 @login_required
@@ -73,8 +58,6 @@ def perfil_view(request):
     else:
         return render(request, 'usuarios/perfil.html', {'usuario': request.user})
 
-# Verifica se o usuário é um relator
-
 
 # Página de Login (não precisa de ajuste)
 def login_view(request):
@@ -115,7 +98,7 @@ def cadastro_view(request):
             usuario.tipo = Usuario.RELATOR  # Define o tipo de usuário como relator
             usuario.set_password(form.cleaned_data['senha'])
             usuario.save()
-
+            registrar_acao_log(usuario=request.user, curso=None,  acao=1)
             # Autenticar e logar automaticamente após o cadastro
             novo_usuario = authenticate(request, email=usuario.email, password=form.cleaned_data['senha'])
             if novo_usuario:
@@ -190,10 +173,6 @@ def cadastrar_ou_editar_visitante(request, visitante_id=None, curso_id=None):
 
 
 
-
-
-
-
 @login_required
 def excluir_visitante(request, visitante_id):
     visitante = get_object_or_404(Usuario, id=visitante_id, tipo=Usuario.VISITANTE)
@@ -216,16 +195,12 @@ def excluir_visitante(request, visitante_id):
 
 
 
-
-
-
-
 @login_required
 def gerenciarvisitantes(request):
-    if not is_relator(request.user):
+    if request.user.tipo != Usuario.RELATOR:  # Verifica se o usuário não é um relator
         return HttpResponseForbidden("Acesso negado. Apenas relatores podem gerenciar visitantes.")
 
-    visitantes = Usuario.objects.filter(tipo='visitante')
+    visitantes = Usuario.objects.filter(tipo=Usuario.VISITANTE)
     return render(request, 'usuarios/gerenciarvisitantes.html', {'visitantes': visitantes})
 
 
