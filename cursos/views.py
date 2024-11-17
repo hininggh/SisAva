@@ -103,17 +103,24 @@ def ceder_criacao_curso(request, curso_id, novo_relator_id):
     novo_relator = get_object_or_404(Usuario, id=novo_relator_id, tipo=Usuario.RELATOR)
     if not curso.relatores.filter(id=novo_relator.id).exists():
         return JsonResponse({'success': False, 'error': "O usuário selecionado não é um relator deste curso."})
-
+    print(novo_relator_id)
+    print(request.user)
+    acao = 25
+    usuario = request.user
+    registrar_acao_log(usuario=usuario, curso=curso, acao=acao)
     # Atualiza o criador do curso para o novo relator
     curso.criador = novo_relator
     curso.save()
 
+    print(curso.criador)
+    print('passou1')
     # Verifica se o relator antigo está na lista de relatores; se não, adiciona
     if not curso.relatores.filter(id=request.user.id).exists():
         curso.relatores.add(request.user)
         curso.save()
-        acao = 25
-    registrar_acao_log(request.user, curso, acao)
+    print(curso.criador)
+    print('passou2')
+
     return JsonResponse({'success': True})
 
 

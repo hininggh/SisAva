@@ -98,11 +98,14 @@ def cadastro_view(request):
             usuario.tipo = Usuario.RELATOR  # Define o tipo de usuário como relator
             usuario.set_password(form.cleaned_data['senha'])
             usuario.save()
-            registrar_acao_log(usuario=request.user, curso=None,  acao=1)
+
             # Autenticar e logar automaticamente após o cadastro
             novo_usuario = authenticate(request, email=usuario.email, password=form.cleaned_data['senha'])
             if novo_usuario:
                 login(request, novo_usuario)
+                acao = 1
+                usuario =novo_usuario
+                registrar_acao_log(usuario=usuario, acao=acao)
                 return redirect('home')  # Redireciona para a view de home principal
     else:
         form = UsuarioForm()
