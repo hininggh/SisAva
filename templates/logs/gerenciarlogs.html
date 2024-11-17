@@ -26,7 +26,7 @@
     <label for="data_fim">Data Fim:</label>
     <input type="date" name="data_fim">
 
-    <button type="submit">Filtrar</button>
+    <button type="submit" name="Filtrar">Filtrar</button>
 </form>
 
 <!-- Exibição dos Logs em uma Tabela -->
@@ -73,4 +73,15 @@
 {% else %}
     <p>Nenhum log encontrado.</p>
 {% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Dispara a filtragem automaticamente se necessário
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('cursos') && !urlParams.has('acoes') && !urlParams.has('data_inicio') && !urlParams.has('data_fim')) {
+            // Se não houver parâmetros de filtragem, não carregue logs
+            // Apenas mantenha os seletores disponíveis
+        }
+    });
+</script>
 {% endblock %}

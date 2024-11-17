@@ -10,7 +10,7 @@
     <div class="text-center mt-4 d-flex justify-content-center">
         <a href="{% url 'criar_curso' %}" class="btn btn-primary mx-2">Nova Avaliação de Curso</a>
         <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-secondary mx-2">Gerenciar Visitantes</a>
-         <a href="{% url 'gerenciar_logs' %}" class="btn btn-warning mx-2">Gerenciar Logs</a>
+         <a href="{% url 'gerenciarlogs' %}" class="btn btn-warning mx-2">Gerenciar Logs</a>
     </div>
 
     {% if cursos_criados.exists %}

@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('gerenciar-logs/', views.gerenciar_logs, name='gerenciar_logs'),
-    path('logs/filtrar/', views.filtrar_logs, name='filtrar_logs'),
+    path('gerenciarlogs/', views.exibir_logs, name='gerenciarlogs'),
+    # View para exibir a página inicial com os seletores
+    path('filtrarlogs/', views.filtrar_logs, name='filtrar_logs'),  # View para filtrar e exibir os logs
 ]
+
