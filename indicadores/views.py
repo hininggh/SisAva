@@ -36,6 +36,7 @@ def visualizar_indicador(request, curso_id, indicador_id):
 
     # Adicionar as informações do IndicadorInfo associadas
     indicador_info = indicador_man.indicador_info
+    nome_relatorio = os.path.basename(indicador_man.conteudo.name) if indicador_man.conteudo else None
 
     context = {
         'curso': curso,
@@ -46,6 +47,7 @@ def visualizar_indicador(request, curso_id, indicador_id):
         'tabela_conceitos': indicador_info.tabela_conceitos,
         'mensagem_aviso': indicador_info.mensagem_aviso,
         'tabela_nome': indicador_info.nome,
+        'nome_relatorio': nome_relatorio  # Adicione o nome do relatório ao contexto
     }
 
     return render(request, 'indicadores/detalhesindicadorrelator.html', context)

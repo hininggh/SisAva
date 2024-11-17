@@ -15,7 +15,7 @@
 
     {% if cursos_criados.exists %}
     <div class="mt-4">
-        <h3>Cursos Criados por Você</h3>
+        <h3>Avaliações Criadas por Você</h3>
         <ul class="list-group">
             {% for curso in cursos_criados %}
             <li class="list-group-item">
@@ -25,12 +25,12 @@
         </ul>
     </div>
     {% else %}
-    <p class="text-center">Você ainda não criou nenhum curso.</p>
+    <p class="text-center">Você ainda não criou nenhuma avaliação.</p>
     {% endif %}
 
     {% if cursos_participante.exists %}
     <div class="mt-4">
-        <h3>Cursos em que você participa</h3>
+        <h3>Avaliações Que Você Varticipa</h3>
         <ul class="list-group">
             {% for curso in cursos_participante %}
             <li class="list-group-item">
@@ -40,7 +40,7 @@
         </ul>
     </div>
     {% else %}
-    <p class="text-center">Você não está associado a nenhum curso.</p>
+    <p class="text-center">Você não está associado a nenhuma avaliação.</p>
     {% endif %}
 </div>
 {% endblock %}

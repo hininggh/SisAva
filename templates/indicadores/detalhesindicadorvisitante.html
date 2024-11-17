@@ -8,29 +8,32 @@
 </div>
 
 <h1>{{ indicador_man.indicador_info.nome }}</h1>
-{% if indicador_man.NSA %}
-    <p>-NSA-</p>
-{% endif %}
+
 
 <!-- Exibe o aviso com o conceito apenas se o conceito estiver presente -->
 <p>
     {{ indicador_man.indicador_info.mensagem_aviso }}
-    {% if indicador_man.nivel_suposto %}
-        <strong>Conceito:</strong> {{ indicador_man.nivel_suposto }}
-    {% endif %}
-</p>
-
-<!-- Exibir Relatório -->
-<div style="margin-top: 20px;">
-    {% if nome_relatorio %}
-        <p><strong>Relatório:</strong> {{ nome_relatorio }}</p>
-        <a href="{% url 'baixar_relatorio' curso.id indicador_man.id %}">
-            <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
-        </a>
+    {% if indicador_man.NSA %}
+        <p>-NSA-</p>
     {% else %}
-        <p><strong>Relatório:</strong> Nenhum envio</p>
+        {% if indicador_man.nivel_suposto %}
+            <strong>Conceito:</strong> {{ indicador_man.nivel_suposto }}
+        {% endif %}
+    </p>
+
+    <!-- Exibir Relatório -->
+    <div style="margin-top: 20px;">
+        {% if nome_relatorio %}
+            <p><strong>Relatório:</strong> {{ nome_relatorio }}</p>
+            <a href="{% url 'baixar_relatorio' curso.id indicador_man.id %}">
+                <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
+            </a>
+        {% else %}
+            <p><strong>Relatório:</strong> Nenhum envio</p>
+        {% endif %}
+    </div>
     {% endif %}
-</div>
+
 
 <!-- Tabela de Conceitos -->
 <h3>Tabela de Conceitos</h3>

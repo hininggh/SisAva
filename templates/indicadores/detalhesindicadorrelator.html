@@ -8,11 +8,11 @@
 </div>
 
 <h1>{{ indicador_man.indicador_info.nome }}</h1>
+<p>{{ indicador_man.indicador_info.mensagem_aviso }}</p>
+
 {% if indicador_man.NSA %}
     <p>-NSA-</p>
 {% endif %}
-<p>{{ indicador_man.indicador_info.mensagem_aviso }}</p>
-
 <!-- Botão para Aplicar ou Remover NSA -->
 
 <div style="display: inline-block; margin-right: 20px;">
@@ -41,7 +41,7 @@
 
     <div style="margin-top: 20px;">
         {% if indicador_man.conteudo %}
-            <p><strong>Relatório:</strong> {{ indicador_man.conteudo.name }}</p>
+            <p><strong>Relatório:</strong> {{ nome_relatorio }}</p>
             <p><strong>Data de Envio:</strong> {{ indicador_man.data_envio }}</p>
             <p><strong>Usuário que enviou:</strong> {{ indicador_man.usuario_relatorio.nome }}</p>
 

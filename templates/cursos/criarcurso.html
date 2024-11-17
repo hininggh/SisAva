@@ -5,16 +5,20 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2>{% if curso %}Editar Curso{% else %}Criar Novo Curso{% endif %}</h2>
+    <h2>{% if curso %}Editar Avaliação{% else %}Criar Nova Avaliação{% endif %}</h2>
 
     <!-- Formulário para Nome, Inscrição e Detalhes -->
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-success mt-2">{% if curso %}Salvar Alterações{% else %}Salvar Curso{% endif %}</button>
+        <button type="submit" class="btn btn-success mt-2">{% if curso %}Salvar Alterações{% else %}Salvar Avaliação{% endif %}</button>
     </form>
 
     {% if curso %}
+    <hr>
+    <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Visualizar Avaliação</button>
+    <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-primary mt-4">Gerenciar Visitantes</a>
+    <button class="btn btn-danger mt-4" onclick="excluirCurso()">Excluir Avaliação</button>
     <hr>
     <div class="row">
         <!-- Coluna para adicionar relator -->
@@ -36,7 +40,7 @@
 
         <!-- Coluna para listar relatores -->
         <div class="col-md-6">
-            <h3>Relatores do Curso</h3>
+            <h3>Relatores da Avaliação</h3>
             <ul id="relatores-list" class="list-group">
                 {% for relator in relatores %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -53,10 +57,7 @@
         </div>
     </div>
 
-    <hr>
-    <button class="btn btn-secondary mt-4" onclick="finalizarCurso()">Visualizar Curso</button>
-    <a href="{% url 'gerenciarvisitantes' %}" class="btn btn-primary mt-4">Gerenciar Visitantes</a>
-    <button class="btn btn-danger mt-4" onclick="excluirCurso()">Excluir Curso</button>
+
 
 
     <hr>
@@ -81,7 +82,7 @@
 
         <!-- Coluna para listar visitantes -->
         <div class="col-md-6">
-            <h3>Visitantes do Curso</h3>
+            <h3>Visitantes da Avaliação</h3>
             <ul id="visitantes-list" class="list-group">
                 {% for visitante in visitantes %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -320,7 +321,7 @@ const cursoId = {{ curso.id }};
             window.location.href = "{% url 'visualizar_curso' curso.id %}";
         }
         function excluirCurso() {
-            if (confirm("Tem certeza que deseja excluir este curso? Esta ação não poderá ser desfeita.")) {
+            if (confirm("Tem certeza que deseja excluir esta avaliação? Esta ação não poderá ser desfeita.")) {
                 fetch("{% url 'excluir_curso' curso.id %}", {
                     method: 'POST',
                     headers: {
@@ -331,7 +332,7 @@ const cursoId = {{ curso.id }};
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert(data.message || "Curso excluído com sucesso!");
+                        alert(data.message || "Avaliação excluída com sucesso!");
                         window.location.href = "{% url 'home' %}";  // Redireciona para a home após exclusão
                     } else {
                         alert(data.error || "Erro ao excluir o curso. Tente novamente.");
@@ -354,7 +355,7 @@ const cursoId = {{ curso.id }};
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert("Criação do curso cedida com sucesso!");
+                            alert("Criação da avaliação cedida com sucesso!");
                             window.location.href = "{% url 'home' %}";  // Redireciona para a home após ceder a criação
                         } else {
                             alert(data.error || "Erro ao ceder a criação. Tente novamente.");

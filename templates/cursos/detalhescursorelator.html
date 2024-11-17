@@ -79,12 +79,12 @@
             <p><strong>Inscrição:</strong> {{ curso.inscricao }}</p>
             <p><strong>Detalhes:</strong> {{ curso.detalhes }}</p>
             {% if curso.privilegios %}
-                <p>Edição do curso, capa e informações complementares aos liberada demais relatores</strong> </p>
+                <p>Edição da avaliação, capa e informações complementares aos liberada demais relatores</strong> </p>
             {% endif %}
             <!-- Alinhar os botões à esquerda -->
             <div class="btn-container mt-4">
                 {% if request.user == curso.criador or privilegios %}
-                    <a href="{% url 'editar_curso' curso.id %}" class="btn btn-primary">Editar Curso</a>
+                    <a href="{% url 'editar_curso' curso.id %}" class="btn btn-primary">Editar Avaliação</a>
                 {% endif %}
                 <a href="{% url 'gerar_relatorio_geral' curso.id %}" class="btn btn-secondary">Gerar Relatório Geral</a>
             </div>

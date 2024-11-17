@@ -97,12 +97,12 @@ def ceder_criacao_curso(request, curso_id, novo_relator_id):
     # Obtém o curso e verifica se o usuário logado é o criador
     curso = get_object_or_404(Curso, id=curso_id)
     if request.user != curso.criador:
-        return JsonResponse({'success': False, 'error': "Apenas o criador tem permissão para ceder a criação do curso."})
+        return JsonResponse({'success': False, 'error': "Apenas o criador tem permissão para ceder a criação da avaliação."})
 
     # Obtém o novo relator e verifica se ele é um relator do curso
     novo_relator = get_object_or_404(Usuario, id=novo_relator_id, tipo=Usuario.RELATOR)
     if not curso.relatores.filter(id=novo_relator.id).exists():
-        return JsonResponse({'success': False, 'error': "O usuário selecionado não é um relator deste curso."})
+        return JsonResponse({'success': False, 'error': "O usuário selecionado não é um relator desta avaliação."})
     print(novo_relator_id)
     print(request.user)
     acao = 25
@@ -144,8 +144,9 @@ def excluir_curso(request, curso_id):
     # Deleta o curso
     curso.delete()
     acao = 25
-    registrar_acao_log(request.user, acao)
-    return JsonResponse({'success': True, 'message': "Curso deletado com sucesso."})
+    usuario = request.user
+    registrar_acao_log(usuario=usuario, acao=acao)
+    return JsonResponse({'success': True, 'message': "Avaliação deletada com sucesso."})
 
 
 
@@ -178,7 +179,8 @@ def adicionar_relator(request, curso_id):
     if relator not in curso.relatores.all():
         curso.relatores.add(relator)
         acao = 18
-        registrar_acao_log(usuario=request.user, acao=acao, curso=curso)
+        usuario = request.user
+        registrar_acao_log(usuario=usuario, acao=acao, curso=curso)
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'success': False, 'error': 'Relator já adicionado.'})
@@ -192,17 +194,18 @@ def excluir_relator(request, curso_id, relator_id):
     relator = get_object_or_404(Usuario, id=relator_id, tipo='relator')
     # Verifica se o usuário que está tentando excluir é o criador
     if request.user != curso.criador:
-        return JsonResponse({'error': 'Apenas o criador do curso pode excluir relatores'}, status=403)
+        return JsonResponse({'error': 'Apenas o criador da avaliação pode excluir relatores'}, status=403)
 
     # Busca o relator e verifica se ele é o criador
     relator = get_object_or_404(Usuario, id=relator_id)
     if relator == curso.criador:
-        return JsonResponse({'error': 'O criador do curso não pode ser removido como relator'}, status=403)
+        return JsonResponse({'error': 'O criador da avaliação não pode ser removido como relator'}, status=403)
 
     # Remove o relator dos relatores do curso
     curso.relatores.remove(relator)
     acao = 19
-    registrar_acao_log(usuario=request.user, acao=acao, curso=curso)
+    usuario = request.user
+    registrar_acao_log(usuario=usuario, acao=acao, curso=curso)
     return JsonResponse({'success': True})
 
 #----------------------------------------
@@ -245,10 +248,11 @@ def adicionar_visitante_curso(request, curso_id):
     if curso not in visitante.cursos_acesso.all():
         visitante.cursos_acesso.add(curso)
         acao = 20
-        registrar_acao_log(usuario=request.user, visitante=visitante, acao=acao, curso=curso)
+        usuario = request.user
+        registrar_acao_log(usuario=usuario, visitante=visitante, acao=acao, curso=curso)
         return JsonResponse({'success': True})
     else:
-        return JsonResponse({'success': False, 'error': 'O visitante já tem acesso a este curso.'})
+        return JsonResponse({'success': False, 'error': 'O visitante já tem acesso a esta avaliação.'})
 
 @login_required
 def excluir_visitante_curso(request, curso_id, visitante_id):
@@ -259,10 +263,11 @@ def excluir_visitante_curso(request, curso_id, visitante_id):
     if curso in visitante.cursos_acesso.all():
         visitante.cursos_acesso.remove(curso)
         acao = 21
-        registrar_acao_log(usuario=request.user, visitante=visitante, acao=acao, curso=curso)
+        usuario = request.user
+        registrar_acao_log(usuario=usuario, visitante=visitante, acao=acao, curso=curso)
         return JsonResponse({'success': True})
     else:
-        return JsonResponse({'success': False, 'error': 'O visitante não tinha acesso a este curso.'})
+        return JsonResponse({'success': False, 'error': 'O visitante não tinha acesso a este avaliação.'})
 
 
 
