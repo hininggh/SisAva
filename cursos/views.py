@@ -111,7 +111,9 @@ def ceder_criacao_curso(request, curso_id, novo_relator_id):
     # Verifica se o relator antigo está na lista de relatores; se não, adiciona
     if not curso.relatores.filter(id=request.user.id).exists():
         curso.relatores.add(request.user)
-
+        curso.save()
+        acao = 25
+    registrar_acao_log(request.user, curso, acao)
     return JsonResponse({'success': True})
 
 
@@ -134,6 +136,8 @@ def excluir_curso(request, curso_id):
 
     # Deleta o curso
     curso.delete()
+    acao = 25
+    registrar_acao_log(request.user, acao)
     return JsonResponse({'success': True, 'message': "Curso deletado com sucesso."})
 
 
@@ -166,6 +170,8 @@ def adicionar_relator(request, curso_id):
     relator = get_object_or_404(Usuario, id=relator_id)
     if relator not in curso.relatores.all():
         curso.relatores.add(relator)
+        acao = 18
+        registrar_acao_log(usuario=request.user, acao=acao, curso=curso)
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'success': False, 'error': 'Relator já adicionado.'})
@@ -188,6 +194,8 @@ def excluir_relator(request, curso_id, relator_id):
 
     # Remove o relator dos relatores do curso
     curso.relatores.remove(relator)
+    acao = 19
+    registrar_acao_log(usuario=request.user, acao=acao, curso=curso)
     return JsonResponse({'success': True})
 
 #----------------------------------------
@@ -229,6 +237,8 @@ def adicionar_visitante_curso(request, curso_id):
     # Adiciona o curso à lista de cursos do visitante, se ainda não estiver presente
     if curso not in visitante.cursos_acesso.all():
         visitante.cursos_acesso.add(curso)
+        acao = 20
+        registrar_acao_log(usuario=request.user, visitante=visitante, acao=acao, curso=curso)
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'success': False, 'error': 'O visitante já tem acesso a este curso.'})
@@ -241,6 +251,8 @@ def excluir_visitante_curso(request, curso_id, visitante_id):
     # Remove o curso da lista de cursos do visitante
     if curso in visitante.cursos_acesso.all():
         visitante.cursos_acesso.remove(curso)
+        acao = 21
+        registrar_acao_log(usuario=request.user, visitante=visitante, acao=acao, curso=curso)
         return JsonResponse({'success': True})
     else:
         return JsonResponse({'success': False, 'error': 'O visitante não tinha acesso a este curso.'})

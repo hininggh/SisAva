@@ -27,6 +27,8 @@ class Log(models.Model):
         (22, "Edição mensagem"),
         (23, "Deleção mensagem"),
         (24, "Deleção visitante"),
+        (25, "Ceder criação"),
+        (25, "Delete de Curso"),
     ]
 
     usuario = models.ForeignKey('usuarios.Usuario', on_delete=models.CASCADE)  # Referência ao modelo Usuario
