@@ -16,5 +16,6 @@ urlpatterns = [
     path('excluir_visitante/<int:visitante_id>/', views.excluir_visitante, name='excluir_visitante'),
     path('perfil/', views.perfil_view, name='perfil'),
     path('gerenciarvisitantes/', views.gerenciarvisitantes, name='gerenciarvisitantes'),
+    path('sisava/', views.sisava, name='sisava'),
 
 ]

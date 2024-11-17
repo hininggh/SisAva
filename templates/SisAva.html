@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Apresentacao SisAva{% endblock %}
+
+{% block content %}
+
+<body style="font-family: Arial, sans-serif; margin: 20px;">
+
+    <!-- Ícone da UFSC -->
+    <div style="text-align: center;">
+        <img src="{% static 'icons/UFSC.png' %}" alt="Ícone da UFSC" style="width: 150px; margin-bottom: 20px;">
+    </div>
+
+    <!-- Nome do curso -->
+    <h1 style="text-align: center;">Tecnologia da Informação e Comunicação</h1>
+
+    <!-- Espaçamento de duas linhas -->
+    <div style="height: 40px;"></div>
+
+    <!-- Nome do TCC em negrito -->
+    <h3 style="font-weight: bold; text-align: center;">"Desenvolvimento e Sugestão de Aplicação Web para avaliações de curso do ensino superior com base no SINAES"</h3>
+
+    <!-- Seção dividida em duas colunas -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px;">
+        <!-- Coluna do texto -->
+        <div style="width: 48%; text-align: justify; font-size: 16px;">
+            <p>
+                Este sistema web é um produto/artefato produzido pelo TCC.
+                <br><br>
+                Autor: Gustavo Henrique Branco Hining
+                <br>
+                Orientador: Prof. Dr. Fabricio Herpich
+                <br><br>
+                O desenvolvimento foi guiado para atender o IACG (INSTRUMENTO DE AVALIAÇÃO DE CURSOS DE GRADUAÇÃO -
+                <a href="https://download.inep.gov.br/educacao_superior/avaliacao_cursos_graduacao/instrumentos/2017/curso_reconhecimento.pdf" target="_blank">
+                    clique aqui
+                </a>), bem como para atender as demandas práticas desenvolvidas pelo grupo de professores responsáveis pelas avaliações.
+                <br><br>
+                Para acessar o TCC com a documentação do desenvolvimento
+                <a href="#" target="_blank">clique aqui</a> (acrescentarei o link quando disponível).
+                <br><br>
+                Ao lado um vídeo apresentando as funcionalidades do sistema.
+            </p>
+        </div>
+
+        <!-- Coluna do vídeo -->
+        <div style="width: 48%; text-align: center;">
+            <iframe width="100%" height="315" src="https://www.youtube.com/embed/SEU_VIDEO_ID" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+
+</body>
+{% endblock %}
