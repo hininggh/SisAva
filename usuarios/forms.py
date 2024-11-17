@@ -15,6 +15,7 @@ class UsuarioForm(forms.ModelForm):
         required=False  # A confirmação da senha também não é obrigatória
     )
 
+
     class Meta:
         model = Usuario
         fields = ['nome', 'email', 'telefone', 'titulacao', 'funcao', 'senha', 'confirmar_senha']
@@ -24,6 +25,10 @@ class UsuarioForm(forms.ModelForm):
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'titulacao': forms.TextInput(attrs={'class': 'form-control'}),
             'funcao': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'funcao': 'Função',
+            'titulacao': 'Titulação'
         }
 
     def clean(self):
@@ -88,6 +93,9 @@ class CadastroVisitanteForm(forms.ModelForm):
                 'type': 'date'
             }),
             'email': forms.EmailInput(attrs={'class': 'form-control w-100'}),
+        }
+        labels = {
+            'instituicao': 'Instituição'
         }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
