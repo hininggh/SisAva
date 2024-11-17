@@ -97,7 +97,7 @@ def ceder_criacao_curso(request, curso_id, novo_relator_id):
     # Obtém o curso e verifica se o usuário logado é o criador
     curso = get_object_or_404(Curso, id=curso_id)
     if request.user != curso.criador:
-        return JsonResponse({'success': False, 'error': "Você não tem permissão para ceder a criação deste curso."})
+        return JsonResponse({'success': False, 'error': "Apenas o criador tem permissão para ceder a criação do curso."})
 
     # Obtém o novo relator e verifica se ele é um relator do curso
     novo_relator = get_object_or_404(Usuario, id=novo_relator_id, tipo=Usuario.RELATOR)
@@ -172,9 +172,11 @@ def adicionar_relator(request, curso_id):
 
 # views.py
 
+@require_POST
 @login_required
 def excluir_relator(request, curso_id, relator_id):
     curso = get_object_or_404(Curso, id=curso_id)
+    relator = get_object_or_404(Usuario, id=relator_id, tipo='relator')
     # Verifica se o usuário que está tentando excluir é o criador
     if request.user != curso.criador:
         return JsonResponse({'error': 'Apenas o criador do curso pode excluir relatores'}, status=403)
@@ -201,8 +203,19 @@ def atualizar_lista_visitantes(request, curso_id):
 
     # Estrutura do JSON para nome e id
     data = {
-        "visitante": [{"id": visitante.id, "nome": visitante.nome} for visitante in visitantes_adicionados],
-        "visitanteDisponiveis": [{"id": visitante.id, "nome": visitante.nome} for visitante in visitantes_disponiveis]
+        "visitante": [
+            {
+                "id": visitante.id,
+                "nome": visitante.nome,
+                "instituicao": visitante.instituicao,
+                "data_inicial": visitante.data_inicial.strftime('%Y-%m-%d') if visitante.data_inicial else None,
+                "data_final": visitante.data_final.strftime('%Y-%m-%d') if visitante.data_final else None,
+            }
+            for visitante in visitantes_adicionados
+        ],
+        "visitanteDisponiveis": [
+            {"id": visitante.id, "nome": visitante.nome} for visitante in visitantes_disponiveis
+        ]
     }
 
     return JsonResponse(data)

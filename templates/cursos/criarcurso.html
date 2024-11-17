@@ -86,7 +86,8 @@
                 {% for visitante in visitantes %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <a href="{% url 'cadastrar_ou_editar_visitante' visitante.id curso.id %}">
-                            {{ visitante.nome }}
+                            {{ visitante.nome }} - {{ visitante.instituicao }} -
+                            Acesso: {{ visitante.data_inicial|date:"d/m/Y" }} até {{ visitante.data_final|date:"d/m/Y" }}
                         </a>
                         <button onclick="excluirVisitante({{ visitante.id }})" class="btn btn-danger btn-sm">Excluir</button>
                     </li>
@@ -96,16 +97,13 @@
             </ul>
         </div>
     </div>
-
-
-
-
     {% endif %}
 </div>
 
-
-
 <script>
+    // Definindo cursoId a partir do contexto Django
+const cursoId = {{ curso.id }};
+
     {% if curso and curso.id %}
         // Função para excluir um relator
         function excluirRelator(relatorId) {
@@ -117,13 +115,25 @@
                         'X-CSRFToken': '{{ csrf_token }}'
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        // Se a resposta não for OK, lança um erro para ser tratado no .catch
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Erro ao excluir o relator.');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         atualizarRelatores();  // Atualiza a lista após a exclusão
                     } else {
-                        alert('Erro ao excluir o relator.');
+                        alert(data.error || 'Erro ao excluir o relator.');
                     }
+                })
+                .catch(error => {
+                    // Exibe a mensagem de erro específica recebida do servidor
+                    alert(error.message);
                 });
             }
         }
@@ -175,8 +185,8 @@
                             item.innerHTML = `
                                 ${relator.nome}
                                 <div>
-                                    <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>
                                     <button onclick="cederCriacao(${relator.id})" class="btn btn-secondary btn-sm">Ceder Criação</button>
+                                    <button onclick="excluirRelator(${relator.id})" class="btn btn-danger btn-sm">Excluir</button>
                                 </div>
                             `;
                             listaRelatoresAdicionados.appendChild(item);
@@ -246,23 +256,37 @@
             .catch(error => console.error('Erro ao adicionar o visitante:', error));
         }
 
-        // Função para atualizar a lista de visitantes
         function atualizarVisitantes() {
             fetch("{% url 'atualizar_lista_visitantes' curso.id %}", {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(response => response.json())
             .then(data => {
-                console.log("Dados recebidos:", data);  // Adicione esta linha para depuração
+                console.log("Dados recebidos:", data);  // Depuração
+
                 const listaVisitantesAdicionados = document.getElementById('visitantes-list');
                 if (listaVisitantesAdicionados) {
                     listaVisitantesAdicionados.innerHTML = '';
+
                     if (data.visitante && Array.isArray(data.visitante)) {
                         data.visitante.forEach(visitante => {
                             const item = document.createElement('li');
                             item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+
+                            // Formate a data no formato "dd/mm/yyyy"
+                            const dataInicial = visitante.data_inicial
+                                ? new Date(visitante.data_inicial).toLocaleDateString('pt-BR')
+                                : 'Data não definida';
+                            const dataFinal = visitante.data_final
+                                ? new Date(visitante.data_final).toLocaleDateString('pt-BR')
+                                : 'Data não definida';
+
+                            // Adicionando o nome, instituição e datas de acesso do visitante como um link
                             item.innerHTML = `
-                                ${visitante.nome}
+                                <a href="/usuarios/cadastrar_ou_editar_visitante/${visitante.id}/${cursoId}/">
+                                    ${visitante.nome} - ${visitante.instituicao || 'Instituição não definida'} -
+                                    Acesso: ${dataInicial} até ${dataFinal}
+                                </a>
                                 <button onclick="excluirVisitante(${visitante.id})" class="btn btn-danger btn-sm">Excluir</button>
                             `;
                             listaVisitantesAdicionados.appendChild(item);
@@ -285,6 +309,7 @@
             })
             .catch(error => console.error("Erro ao atualizar as listas de visitantes:", error));
         }
+
 
 
         //
