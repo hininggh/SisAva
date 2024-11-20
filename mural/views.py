@@ -56,26 +56,6 @@ def postar_mensagem(request, curso_id):
     return JsonResponse({'status': 'Erro: ' + str(form.errors)}, status=400)
 
 
-# Editar uma mensagem no mural
-@login_required
-@require_POST
-def editar_mensagem(request, mensagem_id):
-    mensagem = get_object_or_404(Mural, id=mensagem_id)
-
-    # Verifica se o usuário é o autor da mensagem
-    if mensagem.usuario != request.user:
-        return JsonResponse({'status': 'Erro: Permissão negada.'}, status=403)
-
-    form = MuralForm(request.POST, instance=mensagem)
-
-    if form.is_valid():
-        form.save()
-        acao = 22
-        registrar_acao_log(request.user, acao)
-        return JsonResponse({'status': 'Mensagem editada com sucesso!', 'mensagem': form.cleaned_data['mensagem']})
-
-    return JsonResponse({'status': 'Erro: ' + str(form.errors)}, status=400)
-
 
 # Apagar uma mensagem do mural
 @login_required

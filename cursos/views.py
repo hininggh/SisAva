@@ -23,14 +23,7 @@ import logging
 from django.contrib import messages
 
 
-
-
-
-
-
-
 Usuario = get_user_model()
-
 
 
 # Criar ou Editar Curso
