@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exibir Gráficos</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Gráficos Interativos</h1>
+
+    <!-- Seleção de Indicadores -->
+    <label for="indicadores">Selecione o Indicador:</label>
+    <select id="indicadores" onchange="atualizarGrafico()">
+        {% for indicador in indicadores_opcoes %}
+            <option value="{{ indicador }}">{{ indicador }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Espaço para o gráfico -->
+    <div id="grafico">
+        {{ grafico_html|safe }}
+    </div>
+
+    <script>
+        const classificacoesIndividuais = {{ classificacoes_individuais|safe }};
+        const classificacaoGeral = {{ classificacao_geral|safe }};
+
+        function atualizarGrafico() {
+            const indicadorSelecionado = document.getElementById("indicadores").value;
+            let palavras, frequencias;
+
+            if (indicadorSelecionado === "Classificação Geral") {
+                palavras = Object.keys(classificacaoGeral);
+                frequencias = Object.values(classificacaoGeral);
+            } else {
+                const classificacao = classificacoesIndividuais[indicadorSelecionado];
+                palavras = Object.keys(classificacao);
+                frequencias = Object.values(classificacao);
+            }
+
+            const layout = {
+                title: `Classificação de Palavras - ${indicadorSelecionado}`,
+                xaxis: { title: "Palavras" },
+                yaxis: { title: "Frequência" }
+            };
+
+            const data = [
+                {
+                    x: palavras,
+                    y: frequencias,
+                    type: "bar",
+                    marker: { color: "blue" }
+                }
+            ];
+
+            Plotly.newPlot("grafico", data, layout);
+        }
+    </script>
+</body>
+
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Dados</title>
+</head>
+<body>
+    <h1>Seleção de Dados para Análise</h1>
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Seleção de Cursos -->
+        <h2>Selecione os Cursos</h2>
+        <div>
+            <input type="checkbox" id="todos_cursos" onchange="toggleTodosCursos()">
+            <label for="todos_cursos">Selecionar Todos</label>
+        </div>
+        <div id="cursos-container">
+            {% for curso in cursos %}
+                <div>
+                    <input type="checkbox" name="cursos" value="{{ curso.id }}" id="curso_{{ curso.id }}">
+                    <label for="curso_{{ curso.id }}">{{ curso.nome }}</label>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Seleção de Dimensões -->
+        <h2>Selecione as Dimensões</h2>
+        <div>
+            {% for dimensao in dimensoes %}
+                <div>
+                    <input type="checkbox" name="dimensoes" value="{{ dimensao }}" id="dimensao_{{ forloop.counter }}">
+                    <label for="dimensao_{{ forloop.counter }}">{{ dimensao }}</label>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Seleção de Indicadores -->
+        <h2>Selecione os Indicadores</h2>
+        <div>
+            {% for indicador in indicadores %}
+                <div>
+                    <input type="checkbox" name="indicadores" value="{{ indicador.nome }}" id="indicador_{{ indicador.id }}">
+                    <label for="indicador_{{ indicador.id }}">{{ indicador.nome }}</label>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Seleção de Análise -->
+        <h2>Selecione o Tipo de Análise</h2>
+        <div>
+            <input type="radio" name="int_param" value="1" id="nuvem_palavras" required>
+            <label for="nuvem_palavras">Nuvem de Palavras</label>
+        </div>
+        <div>
+            <input type="radio" name="int_param" value="2" id="classificador_expressoes" required>
+            <label for="classificador_expressoes">Classificador de Expressões</label>
+        </div>
+
+        <!-- Botão de Enviar -->
+        <button type="submit">Enviar para Análise</button>
+    </form>
+
+    <script>
+        function toggleTodosCursos() {
+            const todosCursos = document.getElementById("todos_cursos").checked;
+            const checkboxes = document.querySelectorAll("#cursos-container input[type='checkbox']");
+            checkboxes.forEach(checkbox => checkbox.checked = todosCursos);
+        }
+    </script>
+</body>
+
+{% endblock %}

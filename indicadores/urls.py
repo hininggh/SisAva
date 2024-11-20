@@ -15,5 +15,10 @@ urlpatterns = [
     path('<int:curso_id>/<int:indicador_id>/remover_nsa/', views.remover_nsa, name='remover_nsa'),
     path('indicadores/visitante/<int:curso_id>/<int:indicador_id>/', views.visualizar_indicador_visitante,
          name='visualizar_indicador_visitante'),
+    path('analise-dados/', views.analise_dados, name='analise_dados'),
+    path('processar-indicadores/', views.processar_indicadores, name='processar_indicadores'),
+    path('graficos/nuvem-palavras/', views.exibir_graficos, name='exibir_graficos'),
+    path('graficos/expressao/', views.exibir_graficos_expressao, name='exibir_graficos_expressao'),
+
 ]
 

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráficos de Expressões</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>Gráficos de Expressões</h1>
+
+    <h2>Gráfico de Barras Empilhadas</h2>
+    <div id="grafico-barras">
+        {{ grafico_barras_html|safe }}
+    </div>
+
+    <h2>Gráfico de Rede</h2>
+    <div id="grafico-rede">
+        {{ grafico_rede_html|safe }}
+    </div>
+</body>
+
+{% endblock %}
