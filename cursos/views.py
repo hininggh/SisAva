@@ -65,7 +65,7 @@ def criar_ou_editar_curso(request, curso_id=None):
     # Mantendo os relatores e usuários disponíveis da forma original
     usuarios_disponiveis = Usuario.objects.filter(tipo=Usuario.RELATOR).exclude(
         id__in=curso.relatores.values_list('id', flat=True)) if curso else Usuario.objects.filter(tipo=Usuario.RELATOR)
-    relatores = curso.relatores.all() if curso else []
+    relatores = curso.relatores.exclude(id=curso.criador.id) if curso else []
 
     # Retorna JSON com lista de relatores em requisições AJAX
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
@@ -146,10 +146,11 @@ def excluir_curso(request, curso_id):
 @login_required
 def atualizar_lista_relatores(request, curso_id):
     curso = get_object_or_404(Curso, id=curso_id)
-    relatores_adicionados = curso.relatores.all()
+    relatores_adicionados = curso.relatores.exclude(id=curso.criador.id)
 
-    # Excluir os relatores que já estão no curso da lista de disponíveis
-    relatores_disponiveis = Usuario.objects.filter(tipo='relator').exclude(id__in=relatores_adicionados)
+    # Excluir os relatores que já estão no curso e o criador da lista de disponíveis
+    relatores_disponiveis = Usuario.objects.filter(tipo='relator').exclude(
+        id__in=relatores_adicionados).exclude(id=curso.criador.id)
 
     # Estrutura do JSON para nome e id
     data = {
