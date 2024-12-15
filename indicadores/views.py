@@ -2,21 +2,31 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from PyPDF2 import PdfMerger  # Biblioteca para manipulação de PDFs
-from .models import IndicadorMan, IndicadorInfo  # Modelos de Indicadores
-from cursos.models import Curso
-from logs.views import registrar_acao_log  # Função para registrar logs
-from .forms import NivelSupostoForm, NSAForm, RelatorioForm
-import os  # Biblioteca para manipular arquivos temporários
+from PyPDF2 import PdfMerger
+from .models import IndicadorMan, IndicadorInfo
+from logs.views import registrar_acao_log
+from .forms import NivelSupostoForm, NSAForm, RelatorioPDFForm
+import os
 import tempfile
 from django.contrib import messages
-from usuarios.models import Usuario  # Modelo de Usuario
+from usuarios.models import Usuario
+from cursos.models import Curso
 import plotly.graph_objects as go
-from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.http import HttpResponseBadRequest
 import PyPDF2
 from collections import Counter, defaultdict
 import plotly.graph_objects as go
 import networkx as nx
+from .models import RelatorioPDF
+from io import BytesIO
+import zipfile
+from django.http import JsonResponse, HttpResponseForbidden
+from django.utils.timezone import now
+from datetime import timedelta
+import * as docx from 'docx'
+
+
+
 
 # Visualizar Indicador
 @login_required
@@ -33,13 +43,29 @@ def visualizar_indicador(request, curso_id, indicador_id):
     relatorio_form = None
     if not indicador_man.NSA:  # Garantir que o campo é falso para exibir o conceito e o relatório
         nivel_suposto_form = NivelSupostoForm(request.POST or None, instance=indicador_man)
-        relatorio_form = RelatorioForm(request.POST or None, request.FILES or None, instance=indicador_man)
+        relatorio_form = RelatorioPDFForm(request.POST or None, request.FILES or None)
 
-    # Verificar se existe relatório e se nível suposto é None
+    # Verificar se há relatórios associados (PDFs ou documento compartilhado)
+    relatorios_pdfs = indicador_man.relatorios_pdfs.all()
+    relatorios_info = [
+        {
+            "id": relatorio.id,
+            "arquivo_nome": os.path.basename(relatorio.arquivo.name),
+            "usuario_upload": relatorio.usuario_upload.nome if relatorio.usuario_upload else "Desconhecido",
+            "data_upload": relatorio.data_upload,
+        }
+        for relatorio in relatorios_pdfs
+    ]
+
+    tem_documento_compartilhado = bool(indicador_man.documento_tinymce)
+
+    # Status do documento compartilhado
+    documento_em_edicao = indicador_man.em_edicao
+    usuario_editando_doc = indicador_man.usuario_editando.nome if indicador_man.usuario_editando else None
+    edicao_inicio = indicador_man.edicao_inicio.strftime("%d/%m/%Y %H:%M:%S") if indicador_man.edicao_inicio else None
 
     # Adicionar as informações do IndicadorInfo associadas
     indicador_info = indicador_man.indicador_info
-    nome_relatorio = os.path.basename(indicador_man.conteudo.name) if indicador_man.conteudo else None
 
     context = {
         'curso': curso,
@@ -50,7 +76,12 @@ def visualizar_indicador(request, curso_id, indicador_id):
         'tabela_conceitos': indicador_info.tabela_conceitos,
         'mensagem_aviso': indicador_info.mensagem_aviso,
         'tabela_nome': indicador_info.nome,
-        'nome_relatorio': nome_relatorio  # Adicione o nome do relatório ao contexto
+        'relatorios_pdfs': relatorios_info,  # Envia apenas as informações necessárias
+        'tem_documento_compartilhado': tem_documento_compartilhado,
+        'documento_tinymce': indicador_man.documento_tinymce,
+        'documento_em_edicao': documento_em_edicao,
+        'usuario_editando_doc': usuario_editando_doc,
+        'edicao_inicio': edicao_inicio,
     }
 
     return render(request, 'indicadores/detalhesindicadorrelator.html', context)
@@ -58,125 +89,174 @@ def visualizar_indicador(request, curso_id, indicador_id):
 #___________ visitante
 
 
+@login_required
 def visualizar_indicador_visitante(request, curso_id, indicador_id):
     curso = get_object_or_404(Curso, id=curso_id)
     indicador_man = get_object_or_404(IndicadorMan, curso=curso, id=indicador_id)
 
     if request.user.tipo == Usuario.VISITANTE and curso in request.user.cursos_acesso.all():
         indicador_info = indicador_man.indicador_info
-        nome_relatorio = os.path.basename(indicador_man.conteudo.name) if indicador_man.conteudo else None
+
 
         context = {
             'curso': curso,
             'indicador_man': indicador_man,
             'tabela_conceitos': indicador_info.tabela_conceitos,
             'mensagem_aviso': indicador_info.mensagem_aviso,
-            'tabela_nome': indicador_info.nome,
-            'nome_relatorio': nome_relatorio
+            'tabela_nome': indicador_info.nome
         }
 
         return render(request, 'indicadores/detalhesindicadorvisitante.html', context)
     else:
         return render(request, 'cursos/acesso_negado.html', {'curso': curso})
+
 #_________
 
 
 
 # Baixar Relatório
 
+
 @login_required
-def baixar_relatorio(request, curso_id, indicador_id):
+def baixar_relatorio(request, relatorio_id):
+    relatorio = get_object_or_404(RelatorioPDF, id=relatorio_id)
+
+    # Responder com o arquivo PDF
+    response = HttpResponse(relatorio.arquivo, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="relatorio_{relatorio.indicador.indicador_info.nome}_{relatorio.id}.pdf"'
+
+    return response
+
+
+@login_required
+def baixar_todos_pdfs(request, curso_id, indicador_id):
+    # Obtém o indicador e verifica a permissão do usuário
+    curso = get_object_or_404(Curso, id=curso_id)
+    indicador = get_object_or_404(IndicadorMan, curso=curso, id=indicador_id)
+
+    # Busca todos os RelatoriosPDF relacionados ao indicador
+    relatorios = RelatorioPDF.objects.filter(indicador=indicador)
+
+    if not relatorios.exists():
+        return HttpResponse("Nenhum relatório disponível para download.", content_type="text/plain")
+
+    # Cria um arquivo ZIP com os PDFs
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        for relatorio in relatorios:
+            # Adiciona cada PDF ao ZIP
+            if relatorio.arquivo and os.path.exists(relatorio.arquivo.path):
+                zip_file.write(relatorio.arquivo.path, os.path.basename(relatorio.arquivo.path))
+
+    # Prepara a resposta com o arquivo ZIP
+    zip_buffer.seek(0)
+    response = HttpResponse(zip_buffer, content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="relatorios_{indicador.indicador_info.nome}.zip"'
+    return response
+
+
+
+@login_required
+def baixar_relatorio_mesclado(request, curso_id, indicador_id):
     curso = get_object_or_404(Curso, id=curso_id)
     indicador = get_object_or_404(IndicadorMan, id=indicador_id)
 
-    if indicador.conteudo:
-        if curso.capa:
-            # Caminho dos arquivos
-            relatorio_path = indicador.conteudo.path
-            capa_path = curso.capa.path
+    merger = PdfMerger()
 
-            # Mesclar a capa e o relatório
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-                mesclado_path = temp_file.name
-                merger = PdfMerger()
-                merger.append(capa_path)  # Adicionar a capa primeiro
-                merger.append(relatorio_path)  # Adicionar o relatório depois
-                merger.write(temp_file)
-                merger.close()  # Fechar o merger para liberar recursos
+    # Adicionar a capa do curso (se existir)
+    if curso.capa:
+        merger.append(curso.capa.path)
 
+    # Adicionar o documento compartilhado como PDF (se existir)
+    if indicador.documento_tinymce:
+        doc_buffer = BytesIO()
+        c = canvas.Canvas(doc_buffer, pagesize=A4)
+        c.drawString(1 * cm, 27 * cm, "Documento Compartilhado:")
+        c.drawString(1 * cm, 26.5 * cm, indicador.documento_tinymce)
+        c.save()
+        doc_buffer.seek(0)
+        merger.append(doc_buffer)
 
-            # Enviar o arquivo mesclado para o download
-            with open(mesclado_path, 'rb') as f:
-                response = HttpResponse(f.read(), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="relatorio_mesclado_{indicador.indicador_info.nome}.pdf"'
+    # Adicionar relatórios PDFs (se existirem)
+    relatorios = indicador.relatorios_pdfs.all()
+    for relatorio in relatorios:
+        merger.append(relatorio.arquivo.path)
 
-            # Remover o arquivo temporário após o envio
-            os.remove(mesclado_path)
-            return response
+    # Criar o arquivo mesclado
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+        merger.write(temp_file)
+        mesclado_path = temp_file.name
 
-        else:
-            # Caso não tenha capa, baixar o relatório diretamente
-            response = HttpResponse(indicador.conteudo, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="relatorio_{indicador.indicador_info.nome}.pdf"'
+    # Enviar o arquivo mesclado para download
+    with open(mesclado_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="relatorio_mesclado_{indicador.indicador_info.nome}.pdf"'
 
+    # Remover o arquivo temporário
+    os.remove(mesclado_path)
+    return response
 
-            return response
-
-    return redirect('visualizar_indicador', curso_id=curso_id, indicador_id=indicador_id)
 
 
 # Deletar Relatório
 @login_required
-def deletar_relatorio(request, curso_id, indicador_id):
-    curso = get_object_or_404(Curso, id=curso_id)
-    indicador = get_object_or_404(IndicadorMan, curso=curso, id=indicador_id)
+def deletar_relatorio(request, relatorio_id):
+    relatorio = get_object_or_404(RelatorioPDF, id=relatorio_id)
 
-    # Verificar o parâmetro de origem
-    origem = request.GET.get('origem', 'indicador')  # padrão para 'indicador' se o parâmetro não for passado
-
-    if request.method == 'POST' and indicador.conteudo:
+    if request.method == 'POST':
         try:
-            # Registrar a exclusão no log antes da exclusão do arquivo
-            acao = 14
-            registrar_acao_log(request.user, curso, acao, indicador)
+            # Registrar a exclusão no log
+            registrar_acao_log(request.user, relatorio.indicador.curso, 14, relatorio.indicador)
 
-            # Apaga o arquivo fisicamente e remove a referência ao conteúdo
-            indicador.conteudo.delete(save=False)
-            indicador.conteudo = None
-            indicador.save(update_fields=['conteudo'])
+            # Deletar o arquivo fisicamente e a entrada no banco de dados
+            relatorio.arquivo.delete(save=False)
+            relatorio.delete()
         except PermissionError:
-            os.remove(indicador.conteudo.path)  # Força a exclusão se houver erro de permissão
+            os.remove(relatorio.arquivo.path)  # Força a exclusão em caso de erro de permissão
 
-    # Redireciona para a página de origem
-    if origem == 'curso':
-        return redirect('visualizar_curso', curso_id=curso.id)
-    return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
+    # Redirecionar para a visualização do indicador
+    return redirect('visualizar_indicador', curso_id=relatorio.indicador.curso.id, indicador_id=relatorio.indicador.id)
+
 
 
 # Enviar Relatório
+
 @login_required
 def enviar_ou_substituir_relatorio(request, curso_id, indicador_id):
     curso = get_object_or_404(Curso, id=curso_id)
     indicador = get_object_or_404(IndicadorMan, id=indicador_id)
 
-    # Verificar o parâmetro de origem
-    origem = request.GET.get('origem', 'indicador')  # padrão para 'indicador' se o parâmetro não for passado
+    if request.method == 'POST':
+        arquivo = request.FILES.get('arquivo')
+        relatorio_id = request.POST.get('relatorio_id')  # ID do relatório para substituição (se fornecido)
 
-    # Verificar se a requisição é POST e contém um arquivo
-    if request.method == 'POST' and request.FILES.get('conteudo'):
-        acao = 13 if indicador.conteudo else 12
-        indicador.conteudo = request.FILES['conteudo']
-        indicador.data_envio = timezone.now()
-        indicador.usuario_relatorio = request.user
-        indicador.save()
+        if arquivo:
+            if relatorio_id:
+                # Substituir um relatório existente
+                relatorio = get_object_or_404(RelatorioPDF, id=relatorio_id, indicador=indicador)
+                relatorio.arquivo.delete(save=False)  # Remove fisicamente o arquivo antigo
+                relatorio.arquivo = arquivo
+                relatorio.usuario_upload = request.user  # Atualiza o usuário que fez a substituição
+                relatorio.save()
+                acao = 13  # Código para substituição de relatório no log
+            else:
+                # Criar um novo relatório
+                novo_relatorio = RelatorioPDF(
+                    indicador=indicador,
+                    arquivo=arquivo,
+                    usuario_upload=request.user
+                )
+                novo_relatorio.save()
+                acao = 12  # Código para novo envio de relatório no log
 
-        # Registrar no log
-        registrar_acao_log(request.user, curso, acao, indicador)
+            # Registrar no log
+            registrar_acao_log(request.user, curso, acao, indicador)
+        else:
+            return HttpResponseBadRequest("Nenhum arquivo foi enviado.")
 
-    # Redireciona para a página de origem
-    if origem == 'curso':
-        return redirect('visualizar_curso', curso_id=curso.id)
+    # Redirecionar para a visualização do indicador
     return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
+
 
 
 # Aplicar NSA
@@ -185,12 +265,26 @@ def aplicar_nsa(request, curso_id, indicador_id):
     curso = get_object_or_404(Curso, id=curso_id)
     indicador = get_object_or_404(IndicadorMan, id=indicador_id)
 
+    # Apagar o documento compartilhado
+    indicador.documento_tinymce = None
+    indicador.em_edicao = False
+    indicador.usuario_editando = None
+    indicador.edicao_inicio = None
+    indicador.save(update_fields=['documento_tinymce', 'em_edicao', 'usuario_editando', 'edicao_inicio'])
+
+    # Apagar todos os relatórios PDFs associados
+    relatorios = indicador.relatorios_pdfs.all()
+    for relatorio in relatorios:
+        relatorio.arquivo.delete(save=False)  # Apaga o arquivo fisicamente
+        relatorio.delete()  # Remove o registro do banco de dados
+
+    # Aplicar o NSA
     indicador.NSA = True
     indicador.nivel_suposto = None
-    indicador.conteudo = None
-    indicador.save()
+    indicador.save(update_fields=['NSA', 'nivel_suposto'])
 
-    acao = 16
+    # Registrar a ação no log
+    acao = 16  # Código de ação para aplicar NSA
     registrar_acao_log(request.user, curso, acao, indicador)
 
     return redirect('visualizar_indicador', curso_id=curso.id, indicador_id=indicador.id)
@@ -228,6 +322,82 @@ def aplicar_nivel_suposto(request, curso_id, indicador_id):
 
 #----------------novas implementtações-----------------------------
 
+@login_required
+def gerenciar_documento_compartilhado(request, indicador_id):
+    indicador = get_object_or_404(IndicadorMan, id=indicador_id)
+    timeout = timedelta(minutes=10)
+
+    # Expulsar usuário após timeout
+    if indicador.em_edicao and indicador.edicao_inicio and now() - indicador.edicao_inicio > timeout:
+        indicador.em_edicao = False
+        indicador.usuario_editando = None
+        indicador.edicao_inicio = None
+        indicador.save()
+        return redirect('visualizar_indicador', curso_id=indicador.curso.id, indicador_id=indicador.id)
+
+    # Verificar se outro usuário está editando
+    if indicador.em_edicao and indicador.usuario_editando != request.user:
+        return HttpResponseForbidden("O documento está sendo editado por outro usuário.")
+
+    # Iniciar ou atualizar o estado de edição
+    if not indicador.em_edicao:
+        indicador.em_edicao = True
+        indicador.usuario_editando = request.user
+        indicador.edicao_inicio = now()
+        indicador.save()
+
+    if request.method == 'POST':
+        documento = request.POST.get('documento_tinymce', '')
+        if documento:
+            indicador.documento_tinymce = documento
+            indicador.edicao_inicio = now()  # Atualiza o timestamp a cada alteração
+            indicador.save()
+
+        # **Importante**: Remover o estado de edição antes de redirecionar
+        indicador.em_edicao = False
+        indicador.usuario_editando = None
+        indicador.edicao_inicio = None
+        indicador.save()
+
+        # Após salvar e remover o estado de edição, redirecionar
+        return redirect('visualizar_indicador', curso_id=indicador.curso.id, indicador_id=indicador.id)
+
+    context = {
+        'indicador': indicador,
+        'documento_tinymce': indicador.documento_tinymce,
+    }
+    return render(request, 'indicadores/documentocompartilhado.html', context)
+
+
+@login_required
+def sair_documento_compartilhado(request, indicador_id):
+    indicador = get_object_or_404(IndicadorMan, id=indicador_id)
+    if indicador.usuario_editando == request.user:
+        documento = request.POST.get("documento_tinymce", "")
+        if documento:
+            indicador.documento_tinymce = documento  # Salva as alterações antes de sair
+        indicador.em_edicao = False
+        indicador.usuario_editando = None
+        indicador.edicao_inicio = None
+        indicador.save()
+    return redirect('visualizar_indicador', curso_id=indicador.curso.id, indicador_id=indicador.id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#____________________________analise de dados
 
 def analise_dados(request):
     """
@@ -410,9 +580,14 @@ def classificador_expressoes(request, indicadores):
     resultados_por_indicador = {}
 
     for indicador in indicadores:
-        if indicador.conteudo:
-            palavras = extrair_palavras_pdf(indicador.conteudo.path)
-            classificacao_antes_depois = classificar_palavras_antes_depois(palavras)
+        palavras_totais = []
+        # Processa todos os relatórios PDFs associados ao indicador
+        for relatorio in indicador.relatorios_pdfs.all():
+            palavras = extrair_palavras_pdf(relatorio.arquivo.path)
+            palavras_totais.extend(palavras)
+
+        if palavras_totais:
+            classificacao_antes_depois = classificar_palavras_antes_depois(palavras_totais)
             resultados_por_indicador[indicador.id] = classificacao_antes_depois
 
     if not resultados_por_indicador:
@@ -420,7 +595,6 @@ def classificador_expressoes(request, indicadores):
 
     # Redirecionar internamente para exibir_graficos
     return exibir_graficos_expressao(request, resultados_por_indicador)
-
 
 
 #-------------tratamento dados nuvem
@@ -442,11 +616,16 @@ def nuvem_palavras(request, indicadores):
     todas_palavras = []
 
     for indicador in indicadores:
-        if indicador.conteudo:
-            palavras = extrair_palavras_pdf(indicador.conteudo.path)
-            classificacao = classificar_palavras(palavras)
+        palavras_totais = []
+        # Processa todos os relatórios PDFs associados ao indicador
+        for relatorio in indicador.relatorios_pdfs.all():
+            palavras = extrair_palavras_pdf(relatorio.arquivo.path)
+            palavras_totais.extend(palavras)
+
+        if palavras_totais:
+            classificacao = classificar_palavras(palavras_totais)
             classificacoes_individuais[indicador.id] = classificacao
-            todas_palavras.extend(palavras)
+            todas_palavras.extend(palavras_totais)
 
     # Classificação geral combinada
     classificacao_geral = classificar_palavras(todas_palavras)
@@ -456,6 +635,7 @@ def nuvem_palavras(request, indicadores):
 
     # Redirecionamento interno para exibir_graficos
     return exibir_graficos(request, classificacoes_individuais, classificacao_geral)
+
 
 
 #_________eexibir gráficos nuvem__________

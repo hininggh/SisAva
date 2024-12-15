@@ -38,43 +38,102 @@
             <button type="submit" class="btn btn-primary">Salvar Nível Suposto</button>
         </form>
     </div>
-
+    <!-- Documento Compartilhado -->
     <div style="margin-top: 20px;">
-        {% if indicador_man.conteudo %}
-            <p><strong>Relatório:</strong> {{ nome_relatorio }}</p>
-            <p><strong>Data de Envio:</strong> {{ indicador_man.data_envio }}</p>
-            <p><strong>Usuário que enviou:</strong> {{ indicador_man.usuario_relatorio.nome }}</p>
-
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <a href="{% url 'baixar_relatorio' curso.id indicador_man.id %}">
-                    <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
-                </a>
-
-                <a href="#" onclick="confirmarSubstituirRelatorio()">
-                    <img class="icon" src="{% static 'icons/substituir.png' %}" alt="Substituir" style="width: 20px;">
-                </a>
-
-                <form method="post" action="{% url 'deletar_relatorio' curso.id indicador_man.id %}" class="inline-form" style="margin: 0;" onsubmit="return confirmarDeletarRelatorio('{{ indicador_man.indicador_info.nome }}');">
-                    {% csrf_token %}
-                    <button type="submit" style="border: none; background: none; padding: 0;">
-                        <img class="icon" src="{% static 'icons/cancelar.png' %}" alt="Deletar" style="width: 20px;">
-                    </button>
-                </form>
-            </div>
+        <h3>Relatório do Indicador</h3>
+        {% if indicador_man.documento_tinymce %}
+            <p><strong>Status:</strong> Documento presente</p>
+            {% if indicador_man.em_edicao %}
+                <p><strong>Em edição por:</strong> {{ indicador_man.usuario_editando.nome }}</p>
+                <p><strong>Início da edição:</strong> {{ indicador_man.edicao_inicio }}</p>
+            {% else %}
+                <p><strong>Status de edição:</strong> Não está em edição</p>
+            {% endif %}
         {% else %}
-            <p><strong>Relatório:</strong> Nenhum envio</p>
-            <a href="#" onclick="document.getElementById('file-upload').click();">
-                <img class="icon" src="{% static 'icons/envio.png' %}" alt="Enviar Relatório" style="width: 20px;">
-            </a>
+            <p><strong>Status:</strong> Nenhum documento presente</p>
         {% endif %}
 
-        <form id="enviar-relatorio-form" method="post" enctype="multipart/form-data" action="{% url 'enviar_ou_substituir_relatorio' curso.id indicador_man.id %}">
-            {% csrf_token %}
-            <input type="file" name="conteudo" id="file-upload" style="display: none;">
-        </form>
+        <!-- Botão para Editar ou Criar Documento -->
+        <div style="margin-top: 10px;">
+            {% if indicador_man.documento_tinymce and not indicador_man.em_edicao %}
+                <a href="{% url 'gerenciar_documento_compartilhado' indicador_man.id %}" class="btn btn-primary">
+                    Editar Documento Compartilhado
+                </a>
+            {% elif not indicador_man.documento_tinymce %}
+                <a href="{% url 'gerenciar_documento_compartilhado' indicador_man.id %}" class="btn btn-success">
+                    Criar Documento Compartilhado
+                </a>
+            {% else %}
+                <button class="btn btn-secondary" disabled>
+                    Documento em edição
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- Sessão oculta expansível para Relatórios -->
+    <div style="margin-top: 20px;">
+        <button class="btn btn-info" onclick="toggleRelatorios()">Exibir Documentos</button>
+        <div id="relatorios-section" style="display: none; margin-top: 10px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <!-- Botão para baixar todos os PDFs -->
+                <a href="{% url 'baixar_todos_pdfs' curso.id indicador_man.id %}" class="btn btn-primary">
+                    Baixar Todos os PDFs
+                </a>
+
+                <form id="form-enviar-relatorio" method="POST" action="{% url 'enviar_ou_substituir_relatorio' curso.id indicador_man.id %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="relatorio_id" id="relatorio-id">
+                    <input type="file" name="arquivo" id="file-upload" style="display: none;" onchange="document.getElementById('form-enviar-relatorio').submit();">
+                </form>
+
+                <!-- Botão para abrir seletor de arquivos -->
+                <button class="btn btn-success" onclick="document.getElementById('file-upload').click();">
+                    Acrescentar Relatório
+                </button>
+            </div>
+
+            <!-- Tabela de relatórios -->
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;">
+                <tr>
+                    <th style="border: 0.5px solid #000; padding: 5px; background-color: #f2f2f2;">Relator</th>
+                    <th style="border: 0.5px solid #000; padding: 5px; background-color: #f2f2f2;">Data de Envio</th>
+                    <th style="border: 0.5px solid #000; padding: 5px; background-color: #f2f2f2;">Arquivo</th>
+                    <th style="border: 0.5px solid #000; padding: 5px; background-color: #f2f2f2;">Ações</th>
+                </tr>
+                {% for relatorio in relatorios_pdfs %}
+                    <tr>
+                        <td style="border: 0.5px solid #000; padding: 5px;">{{ relatorio.usuario_upload }}</td>
+                        <td style="border: 0.5px solid #000; padding: 5px;">{{ relatorio.data_upload }}</td>
+                        <td style="border: 0.5px solid #000; padding: 5px;">{{ relatorio.arquivo_nome }}</td>
+                        <td style="border: 0.5px solid #000; padding: 5px; text-align: center;">
+                            <!-- Ações alinhadas -->
+                            <div style="display: flex; justify-content: center; gap: 10px;">
+                                <!-- Ação de baixar -->
+                                <a href="{% url 'baixar_relatorio_pdf' relatorio.id %}">
+                                    <img class="icon" src="{% static 'icons/download.png' %}" alt="Baixar" style="width: 20px;">
+                                </a>
+                                <!-- Ação de substituir -->
+                                <a href="#" onclick="substituirRelatorio('{{ relatorio.id }}')">
+                                    <img class="icon" src="{% static 'icons/substituir.png' %}" alt="Substituir" style="width: 20px;">
+                                </a>
+                                <!-- Ação de deletar -->
+                                <form method="post" action="{% url 'deletar_relatorio_pdf' relatorio.id %}" class="inline-form" style="margin: 0;" onsubmit="return confirmarDeletarRelatorio('{{ indicador_man.indicador_info.nome }}');">
+                                    {% csrf_token %}
+                                    <button type="submit" style="border: none; background: none; padding: 0;">
+                                        <img class="icon" src="{% static 'icons/cancelar.png' %}" alt="Deletar" style="width: 20px;">
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
 {% endif %}
-
+<p> </p>
 <!-- Tabela de Conceitos -->
 <h3>Tabela de Conceitos</h3>
 <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
@@ -91,14 +150,13 @@
 </table>
 
 <script>
-        // Exemplo de como acessar atributos do indicador_man
     const NSA = {{ indicador_man.NSA|yesno:"true,false" }};  // Isso resultará em true ou false
     const nivelSuposto = {{ indicador_man.nivel_suposto|default:'null' }};  // Exibe o nível suposto ou null se não estiver definido
-    const hasRelatorio = {{ indicador_man.conteudo|yesno:"true,false" }};  // Isso resultará em true ou false
+    const hasRelatorio = {{ relatorios_pdfs|yesno:"true,false" }};  // Isso resultará em true ou false
 
     // Submete o formulário de upload de relatório automaticamente após selecionar o arquivo
-    document.getElementById("file-upload").onchange = function() {
-        document.getElementById("enviar-relatorio-form").submit();
+    document.getElementById("file-upload").onchange = function () {
+        document.getElementById("form-enviar-relatorio").submit();
     };
 
         // Confirmação para aplicar NSA, verificando se há relatório ou conceito
@@ -115,9 +173,10 @@
 
 
     // Confirmação para substituir relatório
-    function confirmarSubstituirRelatorio() {
-        if (confirm("O relatório já existente será apagado para salvar o novo. Deseja continuar?")) {
-            document.getElementById("file-upload").click();
+    function substituirRelatorio(relatorioId) {
+        if (confirm("O relatório existente será substituído. Deseja continuar?")) {
+            document.getElementById('relatorio-id').value = relatorioId;
+            document.getElementById('file-upload').click();
         }
     }
 
@@ -125,6 +184,12 @@
     function confirmarDeletarRelatorio(nomeIndicador) {
         return confirm(`Você deseja continuar com a exclusão do relatório do indicador ${nomeIndicador}?`);
     }
+
+    function toggleRelatorios() {
+        const section = document.getElementById('relatorios-section');
+        section.style.display = section.style.display === 'none' ? 'block' : 'none';
+    }
+
 
 </script>
 {% endblock %}

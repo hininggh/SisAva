@@ -22,7 +22,6 @@ import os
 import logging
 from django.contrib import messages
 
-
 Usuario = get_user_model()
 
 
@@ -475,8 +474,9 @@ def gerar_relatorio_geral(request, curso_id):
                 texto = f"Indicador: {indicador.indicador_info.nome} | NSA"
             else:
                 nivel_texto = f"Nível: {indicador.nivel_suposto or 'vazio'}"
-                relatorio_texto = " | Relatório presente" if indicador.conteudo else " | Relatório ausente"
-                texto = f"Indicador: {indicador.indicador_info.nome} | {nivel_texto}{relatorio_texto}"
+                relatorio_texto = " | Relatórios presentes" if indicador.relatorios_pdfs.exists() else " | Relatórios ausentes"
+                documento_texto = " | Documento compartilhado presente" if indicador.documento_tinymce else ""
+                texto = f"Indicador: {indicador.indicador_info.nome} | {nivel_texto}{relatorio_texto}{documento_texto}"
 
             # Ajustar a linha e a posição no PDF
             max_width = 19 * cm
@@ -505,7 +505,7 @@ def gerar_relatorio_geral(request, curso_id):
     buffer.seek(0)
     relatorio_gerado = buffer
 
-    # Mesclar a capa (se houver), o relatório gerado, e os relatórios dos indicadores
+    # Mesclar a capa (se houver), o relatório gerado, o documento compartilhado e os relatórios dos indicadores
     merger = PdfMerger()
 
     if curso.capa:
@@ -514,13 +514,26 @@ def gerar_relatorio_geral(request, curso_id):
     merger.append(relatorio_gerado)
 
     for indicador in indicadores:
-        if indicador.conteudo:
-            merger.append(indicador.conteudo)
+        # Adicionar o documento compartilhado (convertido para PDF) se existir
+        if indicador.documento_tinymce:
+            doc_buffer = BytesIO()
+            doc_canvas = canvas.Canvas(doc_buffer, pagesize=A4)
+            doc_canvas.drawString(left_margin, 27 * cm, "Documento Compartilhado")
+            y_position = 26.5 * cm
+            for line in indicador.documento_tinymce.splitlines():
+                doc_canvas.drawString(left_margin, y_position, line)
+                y_position -= line_height
+            doc_canvas.save()
+            doc_buffer.seek(0)
+            merger.append(doc_buffer)
+
+        # Adicionar os relatórios PDF
+        for relatorio in indicador.relatorios_pdfs.all():
+            merger.append(relatorio.arquivo.path)
 
     resultado_final = BytesIO()
     merger.write(resultado_final)
     resultado_final.seek(0)
-
 
     response = HttpResponse(resultado_final, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="relatorio_geral_{curso.nome}.pdf"'

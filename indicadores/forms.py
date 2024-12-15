@@ -1,5 +1,6 @@
 from django import forms
 from .models import IndicadorMan
+from .models import RelatorioPDF
 
 class NSAForm(forms.ModelForm):
     NSA = forms.BooleanField(label="Aplicar NSA", required=False)
@@ -18,14 +19,24 @@ class NivelSupostoForm(forms.ModelForm):
         model = IndicadorMan
         fields = ['nivel_suposto']
 
-class RelatorioForm(forms.ModelForm):
+class RelatorioPDFForm(forms.ModelForm):
     class Meta:
-        model = IndicadorMan
-        fields = ['conteudo']
+        model = RelatorioPDF
+        fields = ['arquivo', 'usuario_upload']
         widgets = {
-            'conteudo': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'arquivo': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
         labels = {
-            'conteudo': 'Arquivo PDF do Relatório',
+            'arquivo': 'Selecione o arquivo PDF',
         }
 
+class DocumentoCompartilhadoForm(forms.ModelForm):
+    class Meta:
+        model = IndicadorMan
+        fields = ['documento_tinymce']
+        widgets = {
+            'documento_tinymce': forms.Textarea(attrs={'class': 'form-control'}),
+        }
+        labels = {
+            'documento_tinymce': 'Documento Compartilhado',
+        }

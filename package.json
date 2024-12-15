@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@ckeditor/ckeditor5-build-classic": "^44.0.0",
+    "docxtemplater": "^3.55.6",
+    "mammoth": "^1.8.0",
+    "pizzip": "^3.1.7"
+  }
+}

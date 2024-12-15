@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<h1>Relatório do Indicador</h1>
+
+<form method="POST" id="form-documento-compartilhado" action="{% url 'gerenciar_documento_compartilhado' indicador.id %}">
+    {% csrf_token %}
+    <textarea name="documento_tinymce" class="form-control tinymce">{{ documento_tinymce }}</textarea>
+    <div style="margin-top: 10px;">
+        <button type="submit" class="btn btn-primary">Salvar e Sair</button>
+    </div>
+</form>
+
+<script src="{% static 'js/ckeditor/ckeditor.js' %}"></script>
+
+<script>
+    ClassicEditor
+        .create(document.querySelector('#editor'), {
+            plugins: [
+                Alignment, FontColor, FontSize, Heading, List, Indent, Table, TableToolbar,
+                PageBreak, BlockQuote, SpecialCharacters, Essentials, Bold, Italic,
+                Link, ExportPdf, Image, ImageToolbar, ImageCaption, ImageResize, WordCount, TableOfContents
+            ],
+            toolbar: [
+                'undo', 'redo', '|',
+                'heading', '|',
+                'bold', 'italic', 'underline', 'strikethrough', '|',
+                'alignment', '|',
+                'numberedList', 'bulletedList', '|',
+                'outdent', 'indent', '|',
+                'insertTable', 'link', '|',
+                'pageBreak', 'blockQuote', 'specialCharacters', '|',
+                'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+                'tableOfContents', 'exportPdf', 'insertImage'
+            ],
+            heading: {
+                options: [
+                    { model: 'paragraph', title: 'Parágrafo', class: 'ck-heading_paragraph' },
+                    { model: 'heading1', view: 'h1', title: 'Título 1', class: 'ck-heading_heading1' },
+                    { model: 'heading2', view: 'h2', title: 'Título 2', class: 'ck-heading_heading2' },
+                    { model: 'heading3', view: 'h3', title: 'Título 3', class: 'ck-heading_heading3' }
+                ]
+            },
+            fontSize: {
+                options: [10, 12, 14, 16, 18, 20, 24, 30, 36],
+                supportAllValues: true
+            },
+            table: {
+                contentToolbar: [
+                    'tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties'
+                ]
+            },
+            indentBlock: {
+                offset: 40,
+                unit: 'px'
+            },
+            exportPdf: {
+                fileName: 'documento.pdf',
+                stylesheets: ['/static/css/editor-styles.css']
+            },
+            tableOfContents: {
+                label: 'Sumário',
+                headings: ['h1', 'h2', 'h3']
+            },
+            image: {
+                resizeUnit: 'px',
+                toolbar: [
+                    'imageTextAlternative', 'imageStyle:inline', 'imageStyle:block', 'imageStyle:side'
+                ],
+                styles: ['inline', 'block', 'side']
+            },
+            wordCount: {
+                onUpdate: stats => {
+                    console.log(`Palavras: ${stats.words}, Caracteres: ${stats.characters}`);
+                }
+            }
+        })
+        .catch(error => console.error(error));
+        //
+    const PizZip = require('pizzip');
+    const Docxtemplater = require('docxtemplater');
+
+    const content = editor.getData(); // Obtém o conteúdo do CKEditor
+
+    const zip = new PizZip();
+    const doc = new Docxtemplater(zip, { paragraphLoop: true });
+    doc.setData({ content });
+    const out = doc.getZip().generate({ type: 'blob' });
+    saveAs(out, 'documento.docx'); // Salva como arquivo
+
+    //
+    const indicadorId = {{ indicador.id }};
+    const salvarIntervalo = 30000; // 30 segundos
+
+    function salvarAlteracoes() {
+        const documento = tinymce.activeEditor.getContent(); // Obtém o conteúdo do editor TinyMCE
+
+        fetch(`/indicadores/documento/${indicadorId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ documento_tinymce: documento }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Erro ao salvar automaticamente.");
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status !== 'salvo') {
+                console.error("Erro ao salvar automaticamente:", data);
+            }
+        })
+        .catch(() => console.error("Erro de conexão. Alterações não foram salvas."));
+    }
+
+    // Configuração de salvamento automático a cada 30 segundos
+    setInterval(salvarAlteracoes, 30000);
+
+
+    // Salvar e sair explicitamente
+    function salvarESair() {
+        const documento = tinymce.activeEditor.getContent(); // Obtém o conteúdo do editor TinyMCE
+
+        fetch(`/indicadores/documento/${indicadorId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ documento_tinymce: documento }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Erro ao salvar o documento.");
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'salvo') {
+                // Redireciona após salvar
+                window.location.href = `{% url 'sair_documento_compartilhado' indicador.id %}`;
+            } else {
+                alert("Erro ao salvar antes de sair.");
+            }
+        })
+        .catch(() => alert("Erro de conexão. Alterações não foram salvas."));
+    }
+    //
+    const fileInput = document.getElementById('file-upload');
+    fileInput.addEventListener('change', function () {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const arrayBuffer = event.target.result;
+            mammoth.convertToHtml({ arrayBuffer })
+                .then(displayResult)
+                .catch(console.log);
+        };
+        reader.readAsArrayBuffer(this.files[0]);
+    });
+
+    function displayResult(result) {
+        editor.setData(result.value); // Adiciona o conteúdo ao CKEditor
+    }
+
+
+    const mammoth = require("mammoth");
+    mammoth.convertToHtml({ path: "example.docx" })
+        .then(result => editor.setData(result.value))
+        .catch(error => console.error(error));
+
+</script>
+
+{% endblock %}
